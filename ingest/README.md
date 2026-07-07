@@ -1,0 +1,101 @@
+# mukoo-ingest
+
+Flask ingestion API for Mukoo. Accepts batches of cellular-signal measurements
+from the field logger and writes them to PostGIS. Ingestion is **idempotent**:
+each measurement carries a client-generated `sample_id`, and re-sent samples are
+skipped rather than duplicated or rejected.
+
+## Endpoint
+
+### `POST /v1/measurements`
+
+Request body:
+
+```json
+{
+  "session_id": "0e6f…",
+  "carrier": "Verizon",
+  "samples": [
+    {
+      "sample_id": "6b1e…",
+      "recorded_at": "2026-07-07T09:41:12-04:00",
+      "lat": 32.4488,
+      "lon": -81.7832,
+      "network_type": "LTE",
+      "rsrp": -95.0,
+      "rsrq": -10.5,
+      "sinr": 4.0,
+      "cell_id": "310-410-0001",
+      "speed_mps": 12.5,
+      "heading_deg": 270.0
+    },
+    {
+      "sample_id": "9c2f…",
+      "recorded_at": "2026-07-07T09:41:14-04:00",
+      "lat": 32.4495,
+      "lon": -81.7810,
+      "network_type": "none",
+      "rsrp": null,
+      "rsrq": null,
+      "sinr": null,
+      "cell_id": null
+    }
+  ]
+}
+```
+
+- `session_id` and `carrier` are batch-level and applied to every sample; either
+  may be overridden per-sample.
+- `rsrp` / `rsrq` / `sinr` / `cell_id` are optional. A sample with
+  `network_type: "none"` and null metrics is **valid dead-zone data**.
+
+Response (`200 OK`):
+
+```json
+{ "received": 2, "inserted": 2, "skipped": 0 }
+```
+
+- `received` — samples in the payload.
+- `inserted` — newly written rows.
+- `skipped` — samples already present (from this batch or an earlier one).
+
+A partial-duplicate batch never fails as a whole: new samples are inserted and
+duplicates are skipped, via `INSERT … ON CONFLICT (sample_id) DO NOTHING`.
+
+Invalid payloads (bad UUID, unknown `network_type`, out-of-range coordinate,
+empty `samples`) return `400` with details.
+
+### `GET /healthz`
+
+Returns `200` when the database is reachable, `503` otherwise.
+
+## Develop
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -e 'ingest[dev]'          # app + test deps (incl. alembic)
+pip install -r db/requirements.txt    # migration runner
+
+# Bring up PostGIS (see infra/) and apply migrations:
+docker compose -f infra/docker-compose.yml up -d db
+(cd db && DATABASE_URL=postgresql+psycopg2://mukoo:mukoo@localhost:5432/mukoo alembic upgrade head)
+
+# Run the tests (they apply migrations and hit a real PostGIS):
+DATABASE_URL=postgresql+psycopg2://mukoo:mukoo@localhost:5432/mukoo pytest ingest -v
+
+# Run the API locally:
+DATABASE_URL=postgresql+psycopg2://mukoo:mukoo@localhost:5432/mukoo \
+  flask --app mukoo_ingest.wsgi:app run
+```
+
+## Layout
+
+```
+src/mukoo_ingest/
+  app.py       Flask factory + routes
+  service.py   idempotent batch insert (ON CONFLICT DO NOTHING)
+  schemas.py   pydantic request validation
+  models.py    SQLAlchemy Core table (mirrors the migration)
+  db.py        engine construction
+  config.py    env-sourced config
+```

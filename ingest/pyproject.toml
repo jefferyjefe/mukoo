@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mukoo-ingest"
+version = "0.1.0"
+description = "Mukoo ingestion API — batch measurement ingestion for rural cellular coverage verification"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "Flask>=3.0,<4",
+  "SQLAlchemy>=2.0,<3",
+  "GeoAlchemy2>=0.14",
+  "psycopg2-binary>=2.9",
+  "pydantic>=2.5,<3",
+]
+
+[project.optional-dependencies]
+# Test deps. `alembic` is here because the test suite applies the db/ migrations
+# to a throwaway database before exercising the endpoint.
+dev = [
+  "pytest>=7.4",
+  "alembic>=1.13",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

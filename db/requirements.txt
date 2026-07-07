@@ -1,0 +1,6 @@
+# Dependencies for running Alembic migrations (used by CI and the migrate
+# container). The ingestion app declares its own runtime deps in ingest/.
+alembic>=1.13
+SQLAlchemy>=2.0,<3
+GeoAlchemy2>=0.14
+psycopg2-binary>=2.9

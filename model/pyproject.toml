@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mukoo-model"
+version = "0.1.0"
+description = "Mukoo coverage model — kriging / RF propagation over ingested measurements"
+readme = "README.md"
+requires-python = ">=3.9"
+# Interpolation/propagation dependencies (numpy, scipy, pykrige, rasterio, ...)
+# will be pinned here as the model package is built out.
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["src"]

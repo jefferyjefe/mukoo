@@ -1,0 +1,50 @@
+name: mukoo
+
+# Local stack: PostGIS, a one-shot migration runner, and the ingestion API.
+#   docker compose -f infra/docker-compose.yml up --build
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mukoo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mukoo}
+      POSTGRES_DB: ${POSTGRES_DB:-mukoo}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mukoo} -d ${POSTGRES_DB:-mukoo}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Applies Alembic migrations to head, then exits.
+  migrate:
+    build:
+      context: ..
+      dockerfile: ingest/Dockerfile
+    working_dir: /app/db
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-mukoo}:${POSTGRES_PASSWORD:-mukoo}@db:5432/${POSTGRES_DB:-mukoo}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    build:
+      context: ..
+      dockerfile: ingest/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-mukoo}:${POSTGRES_PASSWORD:-mukoo}@db:5432/${POSTGRES_DB:-mukoo}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:
