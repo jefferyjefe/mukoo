@@ -68,6 +68,15 @@ public class MainActivity extends Activity {
                 }
             }
         });
+
+        // the map is a viewer — it works whether or not a drive is recording, so
+        // it opens independently of the start/stop toggle.
+        findViewById(R.id.openMap).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(MainActivity.this, MapActivity.class));
+            }
+        });
     }
 
     @Override

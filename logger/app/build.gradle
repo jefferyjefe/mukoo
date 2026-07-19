@@ -40,8 +40,9 @@ android {
     }
 }
 
-// no dependencies on purpose: telephony, location, sqlite, org.json and
-// HttpURLConnection are all in the platform. nothing to resolve, nothing to
-// break, and a tiny apk for a field tool.
+// The logger core still leans on the platform only (telephony, location, sqlite,
+// org.json, HttpURLConnection). The one dependency is the map view: osmdroid draws
+// OpenStreetMap tiles with no API key and no Google Maps billing to set up.
 dependencies {
+    implementation 'org.osmdroid:osmdroid-android:6.1.18'
 }

@@ -26,8 +26,9 @@ public class DriveSessionService extends Service {
     private static final String CHANNEL_ID = "drive_session";
     private static final int NOTIF_ID = 1;
     // ~3s. cell state changes over seconds, not milliseconds, so this cadence is
-    // the biggest compute/battery saving we get for free.
-    private static final long SAMPLE_INTERVAL_MS = 3000L;
+    // the biggest compute/battery saving we get for free. public so the map's live
+    // layer refreshes in step with logging from one source of truth.
+    public static final long SAMPLE_INTERVAL_MS = 3000L;
     // attempt an upload roughly every 30s of sampling.
     private static final int FLUSH_EVERY_N_SAMPLES = 10;
 

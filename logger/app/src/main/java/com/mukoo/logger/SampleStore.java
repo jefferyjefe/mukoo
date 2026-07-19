@@ -68,6 +68,45 @@ public class SampleStore extends SQLiteOpenHelper {
         getWritableDatabase().insertWithOnConflict(TABLE, null, v, SQLiteDatabase.CONFLICT_IGNORE);
     }
 
+    // a lightweight row for the map's history layer: just what it takes to plot a
+    // dot. keeping it separate from Sample avoids dragging upload bookkeeping into
+    // the render path.
+    public static final class GeoSample {
+        public final double lat;
+        public final double lon;
+        public final Double rsrp;        // null in a dead zone
+        public final String networkType; // "LTE" | "5G-NR" | "none"
+
+        GeoSample(double lat, double lon, Double rsrp, String networkType) {
+            this.lat = lat;
+            this.lon = lon;
+            this.rsrp = rsrp;
+            this.networkType = networkType;
+        }
+    }
+
+    // every logged sample's position + rsrp + network type, oldest first. this is
+    // the whole history layer's data source: local SQLite, so the map draws driven
+    // roads with zero connectivity. uploaded or not is irrelevant here — a sample
+    // is history the moment it is recorded. call off the UI thread.
+    public List<GeoSample> allSamplesForMap() {
+        Cursor c = getReadableDatabase().rawQuery(
+            "SELECT lat, lon, rsrp, network_type FROM " + TABLE + " ORDER BY _id", null);
+        List<GeoSample> out = new ArrayList<>(c.getCount());
+        try {
+            while (c.moveToNext()) {
+                out.add(new GeoSample(
+                    c.getDouble(0),
+                    c.getDouble(1),
+                    c.isNull(2) ? null : c.getDouble(2),
+                    c.getString(3)));
+            }
+        } finally {
+            c.close();
+        }
+        return out;
+    }
+
     public int countAll() {
         return count("SELECT COUNT(*) FROM " + TABLE);
     }

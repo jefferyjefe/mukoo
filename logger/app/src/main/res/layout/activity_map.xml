@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Field map: full-bleed OpenStreetMap, a small always-visible live-metrics panel
+     up top, a compact RSRP colour legend and a follow/recenter button along the
+     bottom. Deliberately sparse — it has to be read at a glance from a car. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
+
+    <org.osmdroid.views.MapView
+        android:id="@+id/map"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
+    <!-- live serving-cell metrics; always on screen -->
+    <LinearLayout
+        android:id="@+id/panel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:layout_margin="12dp"
+        android:background="@drawable/panel_bg"
+        android:orientation="vertical"
+        android:paddingLeft="16dp"
+        android:paddingTop="10dp"
+        android:paddingRight="16dp"
+        android:paddingBottom="10dp">
+
+        <TextView
+            android:id="@+id/metricsMain"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace"
+            android:text="—"/>
+
+        <TextView
+            android:id="@+id/metricsSub"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="#D8FFFFFF"
+            android:textSize="14sp"
+            android:fontFamily="monospace"
+            android:text="waiting for GPS…"/>
+    </LinearLayout>
+
+    <!-- RSRP colour legend -->
+    <LinearLayout
+        android:id="@+id/legend"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_margin="12dp"
+        android:background="@drawable/panel_bg"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingLeft="10dp"
+        android:paddingTop="6dp"
+        android:paddingRight="10dp"
+        android:paddingBottom="6dp">
+
+        <View android:layout_width="12dp" android:layout_height="12dp" android:background="#2ECC40"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginStart="4dp" android:layout_marginEnd="10dp"
+            android:textColor="#FFFFFF" android:textSize="11sp" android:text="≥-90"/>
+
+        <View android:layout_width="12dp" android:layout_height="12dp" android:background="#FFDC00"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginStart="4dp" android:layout_marginEnd="10dp"
+            android:textColor="#FFFFFF" android:textSize="11sp" android:text="-105"/>
+
+        <View android:layout_width="12dp" android:layout_height="12dp" android:background="#FF851B"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginStart="4dp" android:layout_marginEnd="10dp"
+            android:textColor="#FFFFFF" android:textSize="11sp" android:text="-115"/>
+
+        <View android:layout_width="12dp" android:layout_height="12dp" android:background="#FF4136"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginStart="4dp" android:layout_marginEnd="10dp"
+            android:textColor="#FFFFFF" android:textSize="11sp" android:text="&lt;-115"/>
+
+        <View android:layout_width="12dp" android:layout_height="12dp" android:background="#000000"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:textColor="#FFFFFF" android:textSize="11sp" android:text="none"/>
+    </LinearLayout>
+
+    <!-- follow / recenter -->
+    <Button
+        android:id="@+id/recenter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="12dp"
+        android:text="Recenter"/>
+
+</FrameLayout>
