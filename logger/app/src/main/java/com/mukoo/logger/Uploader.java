@@ -15,6 +15,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.GZIPOutputStream;
 
 // drains the local buffer to POST /v1/measurements, one session-batch at a time.
 // safe to call over and over: sample_id is the server's idempotency key, so a
@@ -93,9 +94,13 @@ public class Uploader {
             conn.setReadTimeout(20000);
             conn.setDoOutput(true);
             conn.setRequestProperty("Content-Type", "application/json");
+            // a 200-sample json batch compresses ~10x; over a flaky rural link a
+            // smaller body means fewer mid-transfer failures. the server
+            // decompresses on Content-Encoding: gzip.
+            conn.setRequestProperty("Content-Encoding", "gzip");
 
             byte[] payload = body.toString().getBytes(StandardCharsets.UTF_8);
-            try (OutputStream os = conn.getOutputStream()) {
+            try (OutputStream os = new GZIPOutputStream(conn.getOutputStream())) {
                 os.write(payload);
             }
 

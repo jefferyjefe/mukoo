@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.view.MotionEvent;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.mukoo.logger.map.HistoryLayer;
 import com.mukoo.logger.map.LiveFeed;
@@ -14,7 +15,11 @@ import com.mukoo.logger.map.LiveMapController;
 import com.mukoo.logger.map.LiveMetrics;
 import com.mukoo.logger.map.OsmConfig;
 
+import org.osmdroid.tileprovider.cachemanager.CacheManager;
+import org.osmdroid.tileprovider.tilesource.ITileSource;
+import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
+import org.osmdroid.util.BoundingBox;
 import org.osmdroid.views.MapView;
 
 import java.util.concurrent.ExecutorService;
@@ -35,6 +40,12 @@ public class MapActivity extends Activity {
     // re-read history from SQLite every N ticks so a running drive's samples show
     // up as the trail behind you. N * cadence ≈ 9s.
     private static final int HISTORY_REFRESH_EVERY_TICKS = 3;
+    // offline-cache guard: refuse a download bigger than this many tiles, both to
+    // stay polite to the OSM tile servers and to keep one tap from queueing a
+    // multi-hundred-MB pull. zoom in and cache in passes instead.
+    private static final int MAX_CACHE_TILES = 3000;
+    // street-level detail; matches the default viewing zoom of 16.
+    private static final int CACHE_ZOOM_MAX = 16;
 
     private MapView map;
     private TextView metricsMain;
@@ -95,6 +106,8 @@ public class MapActivity extends Activity {
         });
         updateRecenterLabel();
 
+        findViewById(R.id.cacheArea).setOnClickListener(v -> cacheVisibleArea());
+
         if (!hasLivePermissions()) {
             requestPermissions(
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
@@ -141,6 +154,68 @@ public class MapActivity extends Activity {
             });
         }
     };
+
+    // pre-download the visible box's tiles, from the current zoom down to street
+    // level, into osmdroid's tile cache. once cached, the map draws offline —
+    // which matters because dead zones are exactly where this tool gets used.
+    private void cacheVisibleArea() {
+        // OSM's Mapnik source encodes a no-bulk-download policy and CacheManager
+        // enforces it by THROWING INSIDE ITS ASYNCTASK — uncatchable from here,
+        // it kills the process. so check the policy first and, when bulk isn't
+        // allowed, point at the compliant path instead: tiles cache as you view
+        // them and OsmConfig keeps them for ~a month, so panning the planned
+        // route once while online is the pre-cache.
+        ITileSource src = map.getTileProvider().getTileSource();
+        if (!(src instanceof OnlineTileSourceBase)
+                || !((OnlineTileSourceBase) src).getTileSourcePolicy().acceptsBulkDownload()) {
+            Toast.makeText(this,
+                    "OSM tiles don't allow bulk download — pan the route once while "
+                            + "online instead; viewed tiles stay cached for ~a month",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+        BoundingBox box = map.getBoundingBox();
+        int zoomMin = Math.min((int) map.getZoomLevelDouble(), CACHE_ZOOM_MAX);
+        CacheManager cacheManager = new CacheManager(map);
+        int tiles = cacheManager.possibleTilesInArea(box, zoomMin, CACHE_ZOOM_MAX);
+        if (tiles > MAX_CACHE_TILES) {
+            Toast.makeText(this,
+                    "Area too large (" + tiles + " tiles) — zoom in and cache in passes",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+        Toast.makeText(this, "Caching " + tiles + " tiles for offline…",
+                Toast.LENGTH_SHORT).show();
+        cacheManager.downloadAreaAsync(this, box, zoomMin, CACHE_ZOOM_MAX,
+                new CacheManager.CacheManagerCallback() {
+                    @Override
+                    public void onTaskComplete() {
+                        Toast.makeText(MapActivity.this,
+                                "Offline cache complete", Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onTaskFailed(int errors) {
+                        Toast.makeText(MapActivity.this,
+                                "Cache finished, " + errors + " tiles failed",
+                                Toast.LENGTH_LONG).show();
+                    }
+
+                    @Override
+                    public void updateProgress(int progress, int currentZoomLevel,
+                                               int zoomMin, int zoomMax) {
+                        // quiet: toasts per tile would be spam in a car.
+                    }
+
+                    @Override
+                    public void downloadStarted() {
+                    }
+
+                    @Override
+                    public void setPossibleTilesInArea(int total) {
+                    }
+                });
+    }
 
     private void updateRecenterLabel() {
         recenter.setText(controller.isFollowing() ? "Following" : "Recenter");

@@ -13,9 +13,13 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.os.SystemClock;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 // the drive session. a foreground service so sampling keeps running with the
 // screen off in the car. each tick reads gps + serving-cell signal, writes one
@@ -47,6 +51,23 @@ public class DriveSessionService extends Service {
     // attempt an upload roughly every 30s of sampling.
     private static final int FLUSH_EVERY_N_SAMPLES = 10;
 
+    // a cached last-known fix can be minutes old (tunnel, garage, cold start).
+    // recording it would place the signal reading at the wrong spot, so ticks
+    // with a fix older than this are skipped. public: the health line colours
+    // its GPS age red at the same threshold, so the display and the guard agree.
+    public static final long MAX_FIX_AGE_MS = 10_000L;
+
+    // stationary thinning, tunable. sitting at a 2-minute red light at the 3s
+    // cadence writes ~40 near-identical rows; instead, once we've moved less
+    // than MIN_MOVE_METERS since the last kept sample we keep one sample per
+    // STATIONARY_KEEP_INTERVAL_MS. trade-off: repeated stationary readings do
+    // have averaging value, so flip THIN_WHEN_STATIONARY off to log every tick.
+    // note this also thins a sub-12km/h crawl (a tick moves <10m there), which
+    // for coverage mapping is the same "not really going anywhere" case.
+    static final boolean THIN_WHEN_STATIONARY = true;
+    static final float MIN_MOVE_METERS = 10f;
+    static final long STATIONARY_KEEP_INTERVAL_MS = 30_000L;
+
     private String sessionId;
     private SampleStore store;
     private SignalReader signal;
@@ -59,6 +80,19 @@ public class DriveSessionService extends Service {
     private int tick = 0;
     private volatile boolean running = false;
 
+    // uploads run on their own thread, never on the sampler's. over a marginal
+    // rural link a flush can hang for the full connect+read timeout (~30s); if
+    // it ran on the sampler thread that would silently stall the 3s cadence —
+    // ~10 lost samples per hung batch, in exactly the terrain we're mapping.
+    private ExecutorService uploadExecutor;
+    // one flush in flight at a time; a tick that fires while one is running
+    // just skips — the running flush already drains everything unsent.
+    private final AtomicBoolean flushInFlight = new AtomicBoolean(false);
+
+    // last KEPT sample, for stationary thinning.
+    private Location lastKeptLoc;
+    private long lastKeptElapsedMs;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -67,10 +101,12 @@ public class DriveSessionService extends Service {
         location = new LocationTracker(this);
         uploader = new Uploader(this, store);
         createChannel();
-        // all sampling, db writes and uploads run off the main thread.
+        // sampling and db writes run off the main thread; uploads run off the
+        // sampler thread too (see uploadExecutor).
         workerThread = new HandlerThread("mukoo-sampler");
         workerThread.start();
         worker = new Handler(workerThread.getLooper());
+        uploadExecutor = Executors.newSingleThreadExecutor();
     }
 
     @Override
@@ -110,6 +146,8 @@ public class DriveSessionService extends Service {
         location.start();
         running = true;
         tick = 0;
+        lastKeptLoc = null;
+        lastKeptElapsedMs = 0L;
         worker.post(sampleLoop);
         return START_STICKY;
     }
@@ -128,11 +166,29 @@ public class DriveSessionService extends Service {
     };
 
     private void takeSample() {
+        // the loop ran — even if this tick skips, the logger is not stalled.
+        DriveState.onTickAlive();
+
         Location loc = location.getLast();
         // lat/lon are required by the schema; with no fix yet we cannot form a
         // valid sample, so skip this tick and wait for gps. a dead zone means no
         // serving cell, not no gps: gps keeps working with zero cellular coverage.
         if (loc == null) {
+            return;
+        }
+        // stale-fix guard: both timestamps are elapsedRealtime-based, so this is
+        // immune to wall-clock changes.
+        long fixAgeMs = (SystemClock.elapsedRealtimeNanos() - loc.getElapsedRealtimeNanos())
+                / 1_000_000L;
+        if (fixAgeMs > MAX_FIX_AGE_MS) {
+            return;
+        }
+
+        // stationary thinning: barely moved and recently sampled -> skip.
+        long nowElapsed = SystemClock.elapsedRealtime();
+        if (THIN_WHEN_STATIONARY && lastKeptLoc != null
+                && loc.distanceTo(lastKeptLoc) < MIN_MOVE_METERS
+                && (nowElapsed - lastKeptElapsedMs) < STATIONARY_KEEP_INTERVAL_MS) {
             return;
         }
 
@@ -156,13 +212,32 @@ public class DriveSessionService extends Service {
         s.headingDeg = loc.hasBearing() ? normalizeBearing(loc.getBearing()) : null;
 
         store.insert(s);
+        lastKeptLoc = new Location(loc);
+        lastKeptElapsedMs = nowElapsed;
         // publish for the health line: logging is alive, last sample = now.
         DriveState.onSampleRecorded();
 
         tick++;
         if (tick % FLUSH_EVERY_N_SAMPLES == 0) {
-            uploader.flush();
+            scheduleFlush();
         }
+    }
+
+    // hand the flush to the upload thread; sampling never waits on the network.
+    private void scheduleFlush() {
+        if (!flushInFlight.compareAndSet(false, true)) {
+            return;
+        }
+        uploadExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    uploader.flush();
+                } finally {
+                    flushInFlight.set(false);
+                }
+            }
+        });
     }
 
     // android bearing is already [0,360) but clamp defensively; the schema needs
@@ -183,13 +258,18 @@ public class DriveSessionService extends Service {
         running = false;
         if (worker != null) {
             worker.removeCallbacks(sampleLoop);
-            // one last flush so a finished drive uploads promptly if online.
-            worker.post(new Runnable() {
+        }
+        if (uploadExecutor != null) {
+            // one last flush so a finished drive uploads promptly if online; it
+            // completes on the upload thread after onDestroy returns (the process
+            // outlives the service), then the executor winds down.
+            uploadExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
                     uploader.flush();
                 }
             });
+            uploadExecutor.shutdown();
         }
         location.stop();
         releaseWakeLock();

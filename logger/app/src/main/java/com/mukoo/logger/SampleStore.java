@@ -115,6 +115,10 @@ public class SampleStore extends SQLiteOpenHelper {
         return count("SELECT COUNT(*) FROM " + TABLE + " WHERE uploaded = 1");
     }
 
+    public int countUnsent() {
+        return count("SELECT COUNT(*) FROM " + TABLE + " WHERE uploaded = 0");
+    }
+
     // oldest unsent session, or null when the buffer is fully flushed. batches
     // are single-session because the ingest schema carries session_id once at the
     // batch level.

@@ -7,6 +7,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Outline;
 import android.location.Location;
+import android.net.ConnectivityManager;
+import android.net.Network;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -29,6 +31,8 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.views.MapView;
 
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 // field ui: start/stop, live logged/uploaded counts, a glance map, AND an
 // always-visible logging-health line so a stall is caught at a red light, not at
@@ -68,6 +72,21 @@ public class MainActivity extends Activity {
     private SampleStore store;
     private boolean driving = false;
 
+    // post-drive buffer drain: store-and-forward's last leg. flushes during a
+    // drive belong to the service; this covers "the stop-time flush failed and
+    // rows are stranded" by retrying on app-open and whenever connectivity comes
+    // back while the screen is open. drains skip while a drive is active — the
+    // service is already flushing then.
+    private Uploader uploader;
+    private ExecutorService drainExec;
+    private final ConnectivityManager.NetworkCallback drainOnNetwork =
+            new ConnectivityManager.NetworkCallback() {
+                @Override
+                public void onAvailable(Network network) {
+                    maybeDrain();
+                }
+            };
+
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final Runnable refresh = new Runnable() {
         @Override
@@ -83,6 +102,8 @@ public class MainActivity extends Activity {
         OsmConfig.apply(this);
         setContentView(R.layout.activity_main);
         store = new SampleStore(this);
+        uploader = new Uploader(this, store);
+        drainExec = Executors.newSingleThreadExecutor();
 
         toggle = findViewById(R.id.toggle);
         loggedView = findViewById(R.id.logged);
@@ -149,6 +170,13 @@ public class MainActivity extends Activity {
         miniMap.onResume();
         liveFeed.start();
         syncDrivingState();
+        // drain any stranded rows now, and again whenever a network shows up
+        // while this screen is open.
+        maybeDrain();
+        ConnectivityManager cm = getSystemService(ConnectivityManager.class);
+        if (cm != null) {
+            cm.registerDefaultNetworkCallback(drainOnNetwork);
+        }
     }
 
     @Override
@@ -157,6 +185,32 @@ public class MainActivity extends Activity {
         ui.removeCallbacks(refresh);
         liveFeed.stop();
         miniMap.onPause();
+        ConnectivityManager cm = getSystemService(ConnectivityManager.class);
+        if (cm != null) {
+            try {
+                cm.unregisterNetworkCallback(drainOnNetwork);
+            } catch (IllegalArgumentException ignored) {
+                // already unregistered; nothing to do.
+            }
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (drainExec != null) {
+            drainExec.shutdown();
+        }
+        super.onDestroy();
+    }
+
+    private void maybeDrain() {
+        drainExec.execute(() -> {
+            // during a drive the service owns flushing; the server dedupes by
+            // sample_id anyway, but there's no point racing it.
+            if (!DriveState.isDriving() && store.countUnsent() > 0) {
+                uploader.flush();
+            }
+        });
     }
 
     private void startDrive() {
@@ -209,25 +263,33 @@ public class MainActivity extends Activity {
         if (loc == null) {
             appendSpan(sb, "GPS NO FIX", HEALTH_ALERT);
         } else {
-            long ageS = Math.max(0, (now - loc.getElapsedRealtimeNanos() / 1_000_000L) / 1000L);
-            appendSpan(sb, "GPS ok " + ageS + "s", HEALTH_OK);
+            long ageMs = Math.max(0, now - loc.getElapsedRealtimeNanos() / 1_000_000L);
+            long ageS = ageMs / 1000L;
+            // red at the same threshold the logger stops trusting the fix, so
+            // the display and the sampler's stale-fix guard always agree.
+            if (ageMs > DriveSessionService.MAX_FIX_AGE_MS) {
+                appendSpan(sb, "GPS STALE " + ageS + "s", HEALTH_ALERT);
+            } else {
+                appendSpan(sb, "GPS ok " + ageS + "s", HEALTH_OK);
+            }
         }
         sb.append(" · ");
 
         if (!DriveState.isDriving()) {
             sb.append("smp idle");
         } else {
+            // STALL keys off the sampler LOOP being alive, not off rows written:
+            // stationary thinning and stale-fix skips are intentional pauses, and
+            // must not read as a dead logger at a red light.
+            long lastTick = DriveState.lastTickElapsedMs();
+            boolean stalled = lastTick != 0L
+                    && (now - lastTick) > 2 * DriveSessionService.SAMPLE_INTERVAL_MS;
             long last = DriveState.lastSampleElapsedMs();
-            if (last == 0L) {
-                sb.append("smp —");
+            String age = last == 0L ? "—" : (Math.max(0, (now - last) / 1000L) + "s");
+            if (stalled) {
+                appendSpan(sb, "smp " + age + " STALL", HEALTH_ALERT);
             } else {
-                long ageMs = now - last;
-                long ageS = Math.max(0, ageMs / 1000L);
-                if (ageMs > 2 * DriveSessionService.SAMPLE_INTERVAL_MS) {
-                    appendSpan(sb, "smp " + ageS + "s STALL", HEALTH_ALERT);
-                } else {
-                    sb.append("smp " + ageS + "s");
-                }
+                sb.append("smp ").append(age);
             }
         }
         sb.append(" · ");

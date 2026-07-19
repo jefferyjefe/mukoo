@@ -19,16 +19,27 @@ public final class DriveState {
     // SystemClock.elapsedRealtime() of the last successful insert; 0 == none yet
     // this process. elapsedRealtime is monotonic and unaffected by clock changes.
     private static volatile long lastSampleElapsedMs = 0L;
+    // last time the sampler LOOP ran, whether or not it kept the sample. a tick
+    // that skips (stale gps fix, stationary thinning) still proves the loop is
+    // alive — the health line's STALL detector keys off this, not off row writes,
+    // so intentional skips never read as a stalled logger.
+    private static volatile long lastTickElapsedMs = 0L;
 
     // service calls this when a drive starts or resumes.
     public static void onDriveStarted() {
         driving = true;
         lastSampleElapsedMs = 0L; // a fresh drive is honestly "no sample yet"
+        lastTickElapsedMs = 0L;
     }
 
     // service calls this on an explicit stop.
     public static void onDriveStopped() {
         driving = false;
+    }
+
+    // service calls this at the top of every sampler tick, kept or skipped.
+    public static void onTickAlive() {
+        lastTickElapsedMs = SystemClock.elapsedRealtime();
     }
 
     // service calls this after every sample it writes to the buffer.
@@ -42,5 +53,9 @@ public final class DriveState {
 
     public static long lastSampleElapsedMs() {
         return lastSampleElapsedMs;
+    }
+
+    public static long lastTickElapsedMs() {
+        return lastTickElapsedMs;
     }
 }
