@@ -1,50 +1,92 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- deliberately bare: two counters, one button, one status line -->
+<!-- field controls + an embedded glance map, all visible at once: counters and
+     the Start/Stop button stay, the circular live map and its metrics sit in the
+     middle. Tapping the map opens the full-screen detailed map. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
-    android:padding="32dp">
+    android:padding="20dp">
 
     <TextView
         android:id="@+id/logged"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="26sp"
+        android:textSize="22sp"
         android:text="Logged: 0"/>
 
     <TextView
         android:id="@+id/uploaded"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:textSize="26sp"
+        android:layout_marginTop="4dp"
+        android:textSize="22sp"
         android:text="Uploaded: 0"/>
+
+    <!-- embedded glance map: square frame, map clipped to a circle in code, with
+         a thin ring foreground. tap to open the full map. -->
+    <FrameLayout
+        android:id="@+id/miniMapFrame"
+        android:layout_width="220dp"
+        android:layout_height="220dp"
+        android:layout_marginTop="18dp"
+        android:foreground="@drawable/mini_map_ring">
+
+        <org.osmdroid.views.MapView
+            android:id="@+id/miniMap"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+    </FrameLayout>
+
+    <!-- live metrics, on a dark panel so the RSRP-coloured line stays legible -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/panel_bg"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingLeft="16dp"
+        android:paddingTop="8dp"
+        android:paddingRight="16dp"
+        android:paddingBottom="8dp">
+
+        <TextView
+            android:id="@+id/metricsMain"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace"
+            android:text="—"/>
+
+        <TextView
+            android:id="@+id/metricsSub"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="#D8FFFFFF"
+            android:textSize="13sp"
+            android:fontFamily="monospace"
+            android:text="waiting for GPS…"/>
+    </LinearLayout>
 
     <Button
         android:id="@+id/toggle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="48dp"
+        android:layout_marginTop="18dp"
         android:paddingLeft="40dp"
         android:paddingRight="40dp"
         android:text="Start drive"/>
-
-    <Button
-        android:id="@+id/openMap"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:paddingLeft="40dp"
-        android:paddingRight="40dp"
-        android:text="Map"/>
 
     <TextView
         android:id="@+id/status"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="14dp"
         android:textSize="14sp"
         android:text="Idle"/>
 </LinearLayout>

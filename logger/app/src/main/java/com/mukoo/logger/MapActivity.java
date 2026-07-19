@@ -2,50 +2,38 @@ package com.mukoo.logger;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.Context;
 import android.content.pm.PackageManager;
-import android.location.Location;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.HandlerThread;
 import android.view.MotionEvent;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.mukoo.logger.map.HistoryLayer;
-import com.mukoo.logger.map.LiveLayer;
-import com.mukoo.logger.map.MapLayer;
-import com.mukoo.logger.map.RsrpColor;
+import com.mukoo.logger.map.LiveFeed;
+import com.mukoo.logger.map.LiveMapController;
+import com.mukoo.logger.map.LiveMetrics;
+import com.mukoo.logger.map.OsmConfig;
 
-import org.osmdroid.config.Configuration;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
-import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-// The map screen. Hosts one MapView and a stack of independent layers drawn in
-// z-order, and drives the live layer on the same cadence the logger samples at.
+// The full-screen detailed map: history + live, drawn in z-order, with camera
+// follow and a metrics panel. The live half comes from the shared LiveFeed /
+// LiveMapController / LiveMetrics — the same path the embedded glance map on the
+// main screen uses — so there is one cadence, one colour scale, one reader. This
+// screen adds what the glance view omits: the history layer and free panning.
 //
-// Layers are the extension seam. They are attached bottom-up:
-//     history  (past samples, from local SQLite)
-//     live     (current position + RSRP colour)
-// A prediction/uncertainty layer slots in later as one more MapLayer added at
-// ATTACH-ORDER below (above history, below live) — no change to the camera,
-// the cadence loop, or the panel.
-//
-// The live reading comes from the very same SignalReader + LocationTracker the
-// DriveSessionService logs with, so the colour on the map and the data on disk
-// can't drift apart. This screen only displays; recording stays in the service.
+// Layers attach bottom-up: history, then live (LiveMapController attaches the
+// live layer). A prediction/uncertainty layer slots in on the marked line
+// between them without touching the feed, camera, or panel.
 public class MapActivity extends Activity {
 
     private static final int REQ_PERMS = 200;
-    // re-read history from SQLite every N ticks so samples the running drive is
-    // writing show up as the trail behind you. N*cadence ≈ 9s: fresh enough to
-    // watch a road fill in, rare enough to stay cheap on a big dataset.
+    // re-read history from SQLite every N ticks so a running drive's samples show
+    // up as the trail behind you. N * cadence ≈ 9s.
     private static final int HISTORY_REFRESH_EVERY_TICKS = 3;
 
     private MapView map;
@@ -53,32 +41,18 @@ public class MapActivity extends Activity {
     private TextView metricsSub;
     private Button recenter;
 
-    private final List<MapLayer> layers = new ArrayList<>();
     private HistoryLayer historyLayer;
-    private LiveLayer liveLayer;
+    private LiveFeed liveFeed;
+    private LiveMapController controller;
 
     private SampleStore store;
-    private SignalReader signal;
-    private LocationTracker location;
-
-    private HandlerThread workerThread;
-    private Handler worker;
-    private volatile boolean running = false;
+    private ExecutorService io;
     private int ticks = 0;
-
-    private boolean following = true;
-    private boolean initialCentered = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        // osmdroid needs a real user agent before any tile fetch or OSM 403s us.
-        // Give it its own prefs file so we don't pull in androidx.preference.
-        Configuration.getInstance().load(
-                getApplicationContext(), getSharedPreferences("osmdroid", Context.MODE_PRIVATE));
-        Configuration.getInstance().setUserAgentValue(getPackageName());
-
+        OsmConfig.apply(this);
         setContentView(R.layout.activity_map);
 
         map = findViewById(R.id.map);
@@ -86,49 +60,40 @@ public class MapActivity extends Activity {
         metricsSub = findViewById(R.id.metricsSub);
         recenter = findViewById(R.id.recenter);
 
-        map.setTileSource(TileSourceFactory.MAPNIK);   // OpenStreetMap, no API key
+        map.setTileSource(TileSourceFactory.MAPNIK);
         map.setMultiTouchControls(true);
-        map.setTilesScaledToDpi(true);                 // crisper labels = car-readable
+        map.setTilesScaledToDpi(true);
         map.getController().setZoom(16.0);
 
         float density = getResources().getDisplayMetrics().density;
-
         store = new SampleStore(this);
-        signal = new SignalReader(this);
-        location = new LocationTracker(this);
+        io = Executors.newSingleThreadExecutor();
 
         // ---- ATTACH-ORDER: bottom (history) up to top (live) ----
         historyLayer = new HistoryLayer(density);
-        liveLayer = new LiveLayer(density);
-        layers.add(historyLayer);
-        // layers.add(predictionLayer);   // future 3rd layer drops in right here
-        layers.add(liveLayer);
-        for (MapLayer layer : layers) {
-            layer.attach(map);
-        }
+        historyLayer.attach(map);
+        // prediction/uncertainty layer would attach here (above history, below live)
+        controller = new LiveMapController(map, density,
+                (loc, reading) -> LiveMetrics.render(metricsMain, metricsSub, loc, reading));
 
-        // manual pan turns off follow (only a real touch does — programmatic
-        // recenters don't fire ACTION_MOVE). Recenter turns it back on.
+        liveFeed = new LiveFeed(this);
+        liveFeed.addListener(controller);
+        liveFeed.addListener(historyRefresh);
+
+        // manual pan drops follow (only a real touch fires ACTION_MOVE); Recenter
+        // re-locks.
         map.setOnTouchListener((v, ev) -> {
-            if (ev.getActionMasked() == MotionEvent.ACTION_MOVE && following) {
-                following = false;
+            if (ev.getActionMasked() == MotionEvent.ACTION_MOVE && controller.isFollowing()) {
+                controller.setFollowing(false);
                 updateRecenterLabel();
             }
-            return false; // let the map handle the gesture itself
+            return false;
         });
         recenter.setOnClickListener(v -> {
-            following = true;
+            controller.recenter();
             updateRecenterLabel();
-            Location loc = location.getLast();
-            if (loc != null) {
-                map.getController().animateTo(new GeoPoint(loc.getLatitude(), loc.getLongitude()));
-            }
         });
         updateRecenterLabel();
-
-        workerThread = new HandlerThread("mukoo-map");
-        workerThread.start();
-        worker = new Handler(workerThread.getLooper());
 
         if (!hasLivePermissions()) {
             requestPermissions(
@@ -142,132 +107,43 @@ public class MapActivity extends Activity {
     protected void onResume() {
         super.onResume();
         map.onResume();
-        startLive();
+        // initial history paint from local SQLite, off the UI thread.
+        io.execute(() -> {
+            historyLayer.load(store);
+            map.postInvalidate();
+        });
+        liveFeed.start();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        stopLive();
+        liveFeed.stop();
         map.onPause();
     }
 
     @Override
     protected void onDestroy() {
-        running = false;
-        if (worker != null) {
-            worker.removeCallbacksAndMessages(null);
-        }
-        if (workerThread != null) {
-            workerThread.quitSafely();
+        if (io != null) {
+            io.shutdownNow();
         }
         super.onDestroy();
     }
 
-    private void startLive() {
-        if (running) {
-            return;
-        }
-        running = true;
-        ticks = 0;
-        location.start();
-        // initial history paint, then begin the cadence loop.
-        worker.post(() -> {
-            historyLayer.load(store);
-            runOnUiThread(() -> {
-                map.invalidate();
-                Toast.makeText(this,
-                        "History: " + historyLayer.size() + " points",
-                        Toast.LENGTH_SHORT).show();
-            });
-        });
-        worker.post(tick);
-    }
-
-    private void stopLive() {
-        running = false;
-        if (worker != null) {
-            worker.removeCallbacks(tick);
-        }
-        location.stop();
-    }
-
-    // one sampling tick, on the worker thread: read the radio + last fix off the
-    // UI thread, refresh history periodically, then hand the UI a repaint.
-    private final Runnable tick = new Runnable() {
-        @Override
-        public void run() {
-            if (!running) {
-                return;
-            }
-            final SignalReader.Reading reading = signal.read();
-            final Location loc = location.getLast();
-
-            ticks++;
-            if (ticks % HISTORY_REFRESH_EVERY_TICKS == 0) {
+    // periodic history reload, driven off the shared feed's cadence but done on
+    // the io thread so the SQLite read never touches the UI thread.
+    private final LiveFeed.Listener historyRefresh = (loc, reading) -> {
+        ticks++;
+        if (ticks % HISTORY_REFRESH_EVERY_TICKS == 0) {
+            io.execute(() -> {
                 historyLayer.load(store);
-            }
-
-            runOnUiThread(() -> onTick(loc, reading));
-
-            if (running) {
-                worker.postDelayed(this, DriveSessionService.SAMPLE_INTERVAL_MS);
-            }
+                map.postInvalidate();
+            });
         }
     };
 
-    // UI thread: update the panel, move/recolour the live marker, follow.
-    private void onTick(Location loc, SignalReader.Reading reading) {
-        updatePanel(loc, reading);
-        if (loc != null) {
-            liveLayer.update(loc.getLatitude(), loc.getLongitude(), reading);
-            GeoPoint here = new GeoPoint(loc.getLatitude(), loc.getLongitude());
-            if (!initialCentered) {
-                map.getController().setCenter(here);
-                initialCentered = true;
-            } else if (following) {
-                map.getController().animateTo(here);
-            }
-        }
-        map.invalidate();
-    }
-
-    private void updatePanel(Location loc, SignalReader.Reading r) {
-        int color = RsrpColor.forSample(r.rsrp, r.networkType);
-        String main;
-        if ("none".equals(r.networkType)) {
-            main = "NO SIGNAL";
-        } else {
-            main = r.networkType + "  " + fmt(r.rsrp) + " dBm";
-        }
-        metricsMain.setTextColor(panelTextColor(color));
-        metricsMain.setText(main);
-
-        if (loc == null) {
-            metricsSub.setText("waiting for GPS…");
-        } else {
-            StringBuilder sub = new StringBuilder();
-            sub.append("RSRQ ").append(fmt(r.rsrq))
-               .append("   SINR ").append(fmt(r.sinr));
-            if (r.cellId != null) {
-                sub.append("   CID ").append(r.cellId);
-            }
-            metricsSub.setText(sub.toString());
-        }
-    }
-
-    // black (dead zone) would vanish on the dark panel, so alert in red there;
-    // every other bucket colour is legible on the panel as-is.
-    private int panelTextColor(int rsrpColor) {
-        return rsrpColor == RsrpColor.NO_SIGNAL ? 0xFFFF6E6E : rsrpColor;
-    }
-
-    private static String fmt(Double v) {
-        return v == null ? "--" : Long.toString(Math.round(v));
-    }
-
     private void updateRecenterLabel() {
-        recenter.setText(following ? "Following" : "Recenter");
+        recenter.setText(controller.isFollowing() ? "Following" : "Recenter");
     }
 
     private boolean hasLivePermissions() {
@@ -279,8 +155,9 @@ public class MapActivity extends Activity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQ_PERMS && hasLivePermissions()) {
-            // (re)start location now that we're allowed to read it.
-            location.start();
+            // restart the feed so LocationTracker registers now that we're allowed.
+            liveFeed.stop();
+            liveFeed.start();
         }
     }
 }
