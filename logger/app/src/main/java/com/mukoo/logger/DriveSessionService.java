@@ -6,6 +6,7 @@ import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.ServiceInfo;
 import android.location.Location;
 import android.os.Handler;
@@ -19,9 +20,23 @@ import java.util.UUID;
 // the drive session. a foreground service so sampling keeps running with the
 // screen off in the car. each tick reads gps + serving-cell signal, writes one
 // row to the local buffer, and every so often flushes the buffer to the api.
+//
+// data integrity across an OS kill: the active session id is persisted to disk
+// on start. START_STICKY means the system restarts the service if it kills it;
+// on that restart (null intent) we RESUME the same persisted session rather than
+// starting a fresh one, so a killed-and-restarted drive stays one continuous
+// session instead of silently fragmenting or dying. only an explicit user stop
+// (ACTION_STOP) clears the persisted flag, so an OS kill always resumes.
 public class DriveSessionService extends Service {
 
     public static final String EXTRA_SESSION_ID = "session_id";
+    // sent by the UI to end a drive; distinguishes a user stop from an OS kill.
+    public static final String ACTION_STOP = "com.mukoo.logger.action.STOP_DRIVE";
+
+    // persisted so a sticky restart can resume the same session.
+    private static final String PREFS = "drive_state";
+    private static final String KEY_ACTIVE = "active";
+    private static final String KEY_SESSION = "session_id";
 
     private static final String CHANNEL_ID = "drive_session";
     private static final int NOTIF_ID = 1;
@@ -60,18 +75,41 @@ public class DriveSessionService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        // explicit user stop: clear the persisted flag (so this does NOT resume)
+        // and shut down. this is the only path that ends a drive for good.
+        if (intent != null && ACTION_STOP.equals(intent.getAction())) {
+            persistActive(false);
+            DriveState.onDriveStopped();
+            running = false;
+            stopForeground(STOP_FOREGROUND_REMOVE);
+            stopSelf();
+            return START_NOT_STICKY;
+        }
+
         if (running) {
             return START_STICKY;
         }
-        sessionId = intent != null ? intent.getStringExtra(EXTRA_SESSION_ID) : null;
-        if (sessionId == null) {
+
+        // pick the session id:
+        //  - explicit id from the UI  -> new (or user-chosen) session
+        //  - null intent (sticky restart) with a persisted active drive -> RESUME it
+        //  - otherwise -> a fresh session
+        String fromIntent = intent != null ? intent.getStringExtra(EXTRA_SESSION_ID) : null;
+        if (fromIntent != null) {
+            sessionId = fromIntent;
+        } else if (isActive(this) && activeSession(this) != null) {
+            sessionId = activeSession(this);
+        } else {
             sessionId = UUID.randomUUID().toString();
         }
+        persistActiveSession(sessionId);
+        DriveState.onDriveStarted();
 
         startInForeground();
         acquireWakeLock();
         location.start();
         running = true;
+        tick = 0;
         worker.post(sampleLoop);
         return START_STICKY;
     }
@@ -118,6 +156,8 @@ public class DriveSessionService extends Service {
         s.headingDeg = loc.hasBearing() ? normalizeBearing(loc.getBearing()) : null;
 
         store.insert(s);
+        // publish for the health line: logging is alive, last sample = now.
+        DriveState.onSampleRecorded();
 
         tick++;
         if (tick % FLUSH_EVERY_N_SAMPLES == 0) {
@@ -197,5 +237,29 @@ public class DriveSessionService extends Service {
             wakeLock.release();
         }
         wakeLock = null;
+    }
+
+    // --- persisted active-drive state, so a sticky restart resumes the same
+    //     session. commit() (not apply()) on these: they must be on disk before a
+    //     possible kill, and the writes are tiny. ---
+
+    private static SharedPreferences prefs(Context c) {
+        return c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    }
+
+    static boolean isActive(Context c) {
+        return prefs(c).getBoolean(KEY_ACTIVE, false);
+    }
+
+    static String activeSession(Context c) {
+        return prefs(c).getString(KEY_SESSION, null);
+    }
+
+    private void persistActiveSession(String sessionId) {
+        prefs(this).edit().putBoolean(KEY_ACTIVE, true).putString(KEY_SESSION, sessionId).commit();
+    }
+
+    private void persistActive(boolean active) {
+        prefs(this).edit().putBoolean(KEY_ACTIVE, active).commit();
     }
 }

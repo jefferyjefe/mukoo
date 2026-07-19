@@ -73,6 +73,19 @@
             android:text="waiting for GPS…"/>
     </LinearLayout>
 
+    <!-- logging-health line: GPS status + fix age, last-sample age (red on stall),
+         unsent buffer count. always visible so a stall is caught at a red light. -->
+    <TextView
+        android:id="@+id/health"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:fontFamily="monospace"
+        android:textColor="#444444"
+        android:text="GPS —  ·  smp idle  ·  buf 0"/>
+
     <Button
         android:id="@+id/toggle"
         android:layout_width="wrap_content"
