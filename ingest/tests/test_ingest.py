@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import gzip
+import json
 import uuid
 from datetime import datetime, timezone
 
@@ -116,3 +118,30 @@ def test_out_of_range_coordinate_is_rejected(client, clean_db):
 def test_empty_sample_list_is_rejected(client, clean_db):
     r = client.post("/v1/measurements", json=_batch([]))
     assert r.status_code == 400
+
+
+def test_gzip_batch_is_accepted(client, clean_db):
+    """The field logger gzips its batches; the server must decompress them."""
+    batch = _batch([_sample() for _ in range(3)])
+    body = gzip.compress(json.dumps(batch).encode("utf-8"))
+
+    r = client.post(
+        "/v1/measurements",
+        data=body,
+        headers={"Content-Type": "application/json", "Content-Encoding": "gzip"},
+    )
+    assert r.status_code == 200
+    assert r.get_json() == {"received": 3, "inserted": 3, "skipped": 0}
+    assert _row_count(client) == 3
+
+
+def test_corrupt_gzip_body_is_rejected(client, clean_db):
+    """Garbage bytes under a gzip header must 400, never 500."""
+    r = client.post(
+        "/v1/measurements",
+        data=b"\x1f\x8b not actually gzip",
+        headers={"Content-Type": "application/json", "Content-Encoding": "gzip"},
+    )
+    assert r.status_code == 400
+    assert r.get_json()["error"] == "invalid_json"
+    assert _row_count(client) == 0
