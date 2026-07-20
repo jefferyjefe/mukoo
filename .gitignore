@@ -27,3 +27,9 @@ infra/.env
 .DS_Store
 .idea/
 .vscode/
+
+# Generated coverage-model surfaces / reports (mukoo-krige writes these to ~/mukoo)
+*_kriging_mean.tif
+*_kriging_variance.tif
+*_kriging_stddev.tif
+*_kriging_report.json
