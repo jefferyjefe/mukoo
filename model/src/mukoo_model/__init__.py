@@ -27,6 +27,15 @@ from .crossval import CVResult, kfold_cv
 from .data import PointCloud, load_rsrp_points, utm_epsg_for
 from .kriging import Grid, OrdinaryKrigingModel, SurfaceResult, make_grid
 from .pipeline import PipelineResult, run
+from .raster import load_grid_surface
+from .roads import NearestRoad, RoadNetwork, fetch_roads
+from .suggest import (
+    Suggestion,
+    suggest_targets,
+    suggestions_to_geojson,
+    write_suggestions_geojson,
+)
+from .suggest_pipeline import SuggestResult, run_suggest
 
 __version__ = "0.1.0"
 
@@ -43,5 +52,15 @@ __all__ = [
     "make_grid",
     "PipelineResult",
     "run",
+    "load_grid_surface",
+    "RoadNetwork",
+    "NearestRoad",
+    "fetch_roads",
+    "Suggestion",
+    "suggest_targets",
+    "suggestions_to_geojson",
+    "write_suggestions_geojson",
+    "SuggestResult",
+    "run_suggest",
     "__version__",
 ]

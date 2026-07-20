@@ -57,18 +57,52 @@ print(result.surface_paths)         # {'mean': ..., 'variance': ..., 'stddev': .
 Rasters are written in the UTM CRS the kriging ran in (regular pixels in metres);
 reproject to EPSG:4326 downstream if a web map needs it.
 
+## Implemented: active-learning route suggestions
+
+Given the uncertainty surface, *where should the next drive go to shrink the
+model's uncertainty the most?* This is **decision support** — it proposes ranked
+targets, you choose; nothing autonomous.
+
+1. **Read** the kriging standard-deviation surface (`rsrp_kriging_stddev.tif`,
+   or recompute it from PostGIS).
+2. **Fetch roads.** There's no roads table yet, so the drivable network for the
+   surface's bounding box is pulled from OpenStreetMap via osmnx and cached to
+   `~/mukoo/osm_cache/` (one network call, reused after).
+3. **Rank.** Take the cells whose uncertainty is in the top quantile, snap each
+   onto the nearest road, drop any with no road within `--max-road-dist-m`
+   (uncertain but unreachable — mid-field), and rank the reachable ones by the
+   uncertainty *at the on-road point*.
+4. **Spread.** Greedily pick the top N while enforcing `--min-separation-m`, so
+   suggestions don't cluster — each drive adds distinct information.
+
+```bash
+mukoo-krige --metric rsrp     # produce the surface first (if not already)
+mukoo-suggest --metric rsrp   # prints the ranked targets, writes GeoJSON
+```
+
+Flags: `--top-n` (default 10), `--candidate-quantile` (0.70), `--max-road-dist-m`
+(250), `--min-separation-m` (1200), `--recompute` (refit instead of reading the
+tif), `--refresh-roads`, `--network-type` (osmnx, default `drive`).
+
+Output → `~/mukoo/rsrp_drive_suggestions.geojson`: ranked Point features with
+`rank`, `stddev` (1σ at the target), `road_name`, `road_distance_m`.
+
 ## Package layout
 
 | Module | Responsibility |
 |--------|----------------|
-| `config.py`   | Env-sourced settings (DATABASE_URL, defaults) |
-| `db.py`       | SQLAlchemy engine (read-only usage) |
-| `data.py`     | Load points from PostGIS, project to UTM, collapse duplicates |
-| `kriging.py`  | `OrdinaryKrigingModel`, grid construction, surface prediction |
-| `crossval.py` | k-fold CV → accuracy + variance-calibration metrics |
-| `export.py`   | GeoTIFF writing + JSON report assembly |
-| `pipeline.py` | End-to-end orchestration (`run`) |
-| `cli.py`      | `mukoo-krige` entry point |
+| `config.py`         | Env-sourced settings (DATABASE_URL, defaults) |
+| `db.py`             | SQLAlchemy engine (read-only usage) |
+| `data.py`           | Load points from PostGIS, project to UTM, collapse duplicates |
+| `kriging.py`        | `OrdinaryKrigingModel`, grid construction, surface prediction |
+| `crossval.py`       | k-fold CV → accuracy + variance-calibration metrics |
+| `export.py`         | GeoTIFF writing + JSON report assembly |
+| `raster.py`         | Load a GeoTIFF surface back into `(array, Grid)` |
+| `roads.py`          | `RoadNetwork` (Shapely) + `fetch_roads` (OSM, cached) |
+| `suggest.py`        | Active-learning ranking + GeoJSON export (pure, DB/OSM-free) |
+| `pipeline.py`       | Kriging orchestration (`run`) |
+| `suggest_pipeline.py` | Suggestion orchestration (`run_suggest`) |
+| `cli.py` / `cli_suggest.py` | `mukoo-krige` / `mukoo-suggest` entry points |
 
 ## Still planned
 

@@ -20,6 +20,9 @@ dependencies = [
   # Project lon/lat -> metric UTM so variograms are in metres, and write rasters.
   "pyproj>=3.4",
   "rasterio>=1.3",         # GeoTIFF export (bundles GDAL)
+  # Active-learning route suggestions: road geometry + nearest-road snapping.
+  "shapely>=2.0",          # geometry ops + STRtree nearest-road queries
+  "osmnx>=1.9",            # fetch the drivable road network from OpenStreetMap
 ]
 
 [project.optional-dependencies]
@@ -29,6 +32,7 @@ dev = [
 
 [project.scripts]
 mukoo-krige = "mukoo_model.cli:main"
+mukoo-suggest = "mukoo_model.cli_suggest:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
