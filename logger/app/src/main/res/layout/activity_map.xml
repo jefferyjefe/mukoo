@@ -97,14 +97,31 @@
         android:layout_margin="12dp"
         android:text="Recenter"/>
 
-    <!-- pre-download the visible area's tiles so the map still draws in dead
-         zones — where this project actually drives -->
-    <Button
-        android:id="@+id/cacheArea"
+    <!-- top-right controls, stacked: cache tiles for offline, and toggle the
+         drive-suggestion pins on/off. -->
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|end"
         android:layout_margin="12dp"
-        android:text="Cache"/>
+        android:orientation="vertical"
+        android:gravity="end">
+
+        <!-- pre-download the visible area's tiles so the map still draws in dead
+             zones — where this project actually drives -->
+        <Button
+            android:id="@+id/cacheArea"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cache"/>
+
+        <!-- show/hide the ranked "drive here next" suggestion pins -->
+        <Button
+            android:id="@+id/toggleTargets"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Targets"/>
+    </LinearLayout>
 
 </FrameLayout>

@@ -14,6 +14,8 @@ import com.mukoo.logger.map.LiveFeed;
 import com.mukoo.logger.map.LiveMapController;
 import com.mukoo.logger.map.LiveMetrics;
 import com.mukoo.logger.map.OsmConfig;
+import com.mukoo.logger.map.Suggestion;
+import com.mukoo.logger.map.SuggestionLayer;
 
 import org.osmdroid.tileprovider.cachemanager.CacheManager;
 import org.osmdroid.tileprovider.tilesource.ITileSource;
@@ -22,6 +24,7 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.BoundingBox;
 import org.osmdroid.views.MapView;
 
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -51,14 +54,18 @@ public class MapActivity extends Activity {
     private TextView metricsMain;
     private TextView metricsSub;
     private Button recenter;
+    private Button toggleTargets;
 
     private HistoryLayer historyLayer;
+    private SuggestionLayer suggestionLayer;
     private LiveFeed liveFeed;
     private LiveMapController controller;
 
     private SampleStore store;
+    private SuggestionRepository suggestionRepo;
     private ExecutorService io;
     private int ticks = 0;
+    private boolean showTargets = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,12 +85,16 @@ public class MapActivity extends Activity {
 
         float density = getResources().getDisplayMetrics().density;
         store = new SampleStore(this);
+        suggestionRepo = new SuggestionRepository(this);
         io = Executors.newSingleThreadExecutor();
 
         // ---- ATTACH-ORDER: bottom (history) up to top (live) ----
         historyLayer = new HistoryLayer(density);
         historyLayer.attach(map);
-        // prediction/uncertainty layer would attach here (above history, below live)
+        // prediction/uncertainty layer: the active-learning drive suggestions,
+        // above history and below live, on the seam the map was built to accept.
+        suggestionLayer = new SuggestionLayer(density);
+        suggestionLayer.attach(map);
         controller = new LiveMapController(map, density,
                 (loc, reading) -> LiveMetrics.render(metricsMain, metricsSub, loc, reading));
 
@@ -108,6 +119,17 @@ public class MapActivity extends Activity {
 
         findViewById(R.id.cacheArea).setOnClickListener(v -> cacheVisibleArea());
 
+        // show/hide the drive-suggestion pins; the layer stays attached, just
+        // toggles its draw. Kept separate from history so it's a distinct thing.
+        toggleTargets = findViewById(R.id.toggleTargets);
+        toggleTargets.setOnClickListener(v -> {
+            showTargets = !showTargets;
+            suggestionLayer.setVisible(showTargets);
+            updateTargetsLabel();
+            map.invalidate();
+        });
+        updateTargetsLabel();
+
         if (!hasLivePermissions()) {
             requestPermissions(
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
@@ -124,6 +146,14 @@ public class MapActivity extends Activity {
         io.execute(() -> {
             historyLayer.load(store);
             map.postInvalidate();
+        });
+        // drive suggestions: refresh from the server when online, fall back to
+        // the last cached copy otherwise (store-and-forward), off the UI thread.
+        io.execute(() -> {
+            List<Suggestion> targets = suggestionRepo.refresh();
+            suggestionLayer.setSuggestions(targets);
+            map.postInvalidate();
+            runOnUiThread(this::updateTargetsLabel);
         });
         liveFeed.start();
     }
@@ -219,6 +249,18 @@ public class MapActivity extends Activity {
 
     private void updateRecenterLabel() {
         recenter.setText(controller.isFollowing() ? "Following" : "Recenter");
+    }
+
+    // reflects both the toggle state and how many targets are loaded, so a glance
+    // at the button answers "are suggestions on, and did any load?" ("Targets 0"
+    // means we're online-less with no cache yet, or the model made none).
+    private void updateTargetsLabel() {
+        if (toggleTargets == null) {
+            return;
+        }
+        toggleTargets.setText(showTargets
+                ? "Targets " + suggestionLayer.size()
+                : "Targets off");
     }
 
     private boolean hasLivePermissions() {
