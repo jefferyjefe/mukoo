@@ -64,6 +64,10 @@ public class MapActivity extends Activity {
     private SampleStore store;
     private SuggestionRepository suggestionRepo;
     private ExecutorService io;
+    // network fetches get their own thread: a suggestion refresh against an
+    // unreachable server can block for its full connect+read timeout, and it
+    // must never stall the io thread's periodic history repaints behind it.
+    private ExecutorService net;
     private int ticks = 0;
     private boolean showTargets = true;
 
@@ -87,6 +91,7 @@ public class MapActivity extends Activity {
         store = new SampleStore(this);
         suggestionRepo = new SuggestionRepository(this);
         io = Executors.newSingleThreadExecutor();
+        net = Executors.newSingleThreadExecutor();
 
         // ---- ATTACH-ORDER: bottom (history) up to top (live) ----
         historyLayer = new HistoryLayer(density);
@@ -148,8 +153,9 @@ public class MapActivity extends Activity {
             map.postInvalidate();
         });
         // drive suggestions: refresh from the server when online, fall back to
-        // the last cached copy otherwise (store-and-forward), off the UI thread.
-        io.execute(() -> {
+        // the last cached copy otherwise (store-and-forward). On the net thread,
+        // not io — a slow/unreachable server must not delay history repaints.
+        net.execute(() -> {
             List<Suggestion> targets = suggestionRepo.refresh();
             suggestionLayer.setSuggestions(targets);
             map.postInvalidate();
@@ -169,6 +175,9 @@ public class MapActivity extends Activity {
     protected void onDestroy() {
         if (io != null) {
             io.shutdownNow();
+        }
+        if (net != null) {
+            net.shutdownNow();
         }
         super.onDestroy();
     }
