@@ -2,10 +2,15 @@ package com.mukoo.logger;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.MotionEvent;
+import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -55,6 +60,9 @@ public class MapActivity extends Activity {
     private TextView metricsSub;
     private Button recenter;
     private Button toggleTargets;
+    private LinearLayout targetCard;
+    private TextView targetCardTitle;
+    private TextView targetCardSub;
 
     private HistoryLayer historyLayer;
     private SuggestionLayer suggestionLayer;
@@ -130,10 +138,31 @@ public class MapActivity extends Activity {
         toggleTargets.setOnClickListener(v -> {
             showTargets = !showTargets;
             suggestionLayer.setVisible(showTargets);
+            if (!showTargets) {
+                hideTargetCard();
+            }
             updateTargetsLabel();
             map.invalidate();
         });
         updateTargetsLabel();
+
+        // pin touch: tap -> info card (choose with context), long-press ->
+        // straight to navigation (car-friendly shortcut).
+        targetCard = findViewById(R.id.targetCard);
+        targetCardTitle = findViewById(R.id.targetCardTitle);
+        targetCardSub = findViewById(R.id.targetCardSub);
+        findViewById(R.id.targetCardClose).setOnClickListener(v -> hideTargetCard());
+        suggestionLayer.setListener(new com.mukoo.logger.map.SuggestionOverlay.Listener() {
+            @Override
+            public void onTap(Suggestion s) {
+                showTargetCard(s);
+            }
+
+            @Override
+            public void onLongPress(Suggestion s) {
+                navigateTo(s);
+            }
+        });
 
         if (!hasLivePermissions()) {
             requestPermissions(
@@ -183,7 +212,8 @@ public class MapActivity extends Activity {
     }
 
     // periodic history reload, driven off the shared feed's cadence but done on
-    // the io thread so the SQLite read never touches the UI thread.
+    // the io thread so the SQLite read never touches the UI thread. The same
+    // tick feeds the suggestion layer's covered check: pins you drive past fade.
     private final LiveFeed.Listener historyRefresh = (loc, reading) -> {
         ticks++;
         if (ticks % HISTORY_REFRESH_EVERY_TICKS == 0) {
@@ -192,7 +222,50 @@ public class MapActivity extends Activity {
                 map.postInvalidate();
             });
         }
+        if (loc != null
+                && suggestionLayer.updateLive(loc.getLatitude(), loc.getLongitude())) {
+            updateTargetsLabel();
+            map.invalidate();
+        }
     };
+
+    private void showTargetCard(Suggestion s) {
+        String road = s.roadName != null ? s.roadName : "unnamed road";
+        targetCardTitle.setText("T" + s.rank + " · " + road);
+        StringBuilder sub = new StringBuilder();
+        sub.append("σ ").append(String.format(java.util.Locale.US, "%.1f", s.stddev))
+                .append(" dBm");
+        if (s.visitOrder > 0) {
+            sub.append("   ·   drive order ").append(s.visitOrder);
+        }
+        targetCardSub.setText(sub);
+        findViewById(R.id.targetNavigate).setOnClickListener(v -> navigateTo(s));
+        targetCard.setVisibility(View.VISIBLE);
+    }
+
+    private void hideTargetCard() {
+        targetCard.setVisibility(View.GONE);
+    }
+
+    // Hand the target to a navigation app: google.navigation: starts turn-by-
+    // turn directly; fall back to a geo: URI, and if nothing handles maps at
+    // all, say so instead of crashing (this phone lives in a car).
+    private void navigateTo(Suggestion s) {
+        String label = "Mukoo T" + s.rank;
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW,
+                    Uri.parse("google.navigation:q=" + s.lat + "," + s.lon)));
+        } catch (ActivityNotFoundException e) {
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW,
+                        Uri.parse("geo:" + s.lat + "," + s.lon + "?q="
+                                + s.lat + "," + s.lon + "(" + Uri.encode(label) + ")")));
+            } catch (ActivityNotFoundException e2) {
+                Toast.makeText(this, "No navigation app installed", Toast.LENGTH_SHORT)
+                        .show();
+            }
+        }
+    }
 
     // pre-download the visible box's tiles, from the current zoom down to street
     // level, into osmdroid's tile cache. once cached, the map draws offline —
@@ -260,16 +333,21 @@ public class MapActivity extends Activity {
         recenter.setText(controller.isFollowing() ? "Following" : "Recenter");
     }
 
-    // reflects both the toggle state and how many targets are loaded, so a glance
-    // at the button answers "are suggestions on, and did any load?" ("Targets 0"
-    // means we're online-less with no cache yet, or the model made none).
+    // reflects the toggle state, how many targets loaded, and how many remain
+    // uncovered this drive: "Targets 7/10" reads as "7 left of 10". ("Targets
+    // 0/0" means offline with no cache yet, or the model made none.)
     private void updateTargetsLabel() {
         if (toggleTargets == null) {
             return;
         }
-        toggleTargets.setText(showTargets
-                ? "Targets " + suggestionLayer.size()
-                : "Targets off");
+        if (!showTargets) {
+            toggleTargets.setText("Targets off");
+            return;
+        }
+        int total = suggestionLayer.size();
+        int left = suggestionLayer.remaining();
+        toggleTargets.setText(
+                left == total ? "Targets " + total : "Targets " + left + "/" + total);
     }
 
     private boolean hasLivePermissions() {

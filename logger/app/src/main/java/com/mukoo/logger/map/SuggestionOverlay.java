@@ -4,6 +4,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Point;
+import android.view.MotionEvent;
 
 import org.osmdroid.util.BoundingBox;
 import org.osmdroid.util.GeoPoint;
@@ -19,20 +20,31 @@ import org.osmdroid.views.overlay.Overlay;
 // dot, and these are big violet pins — so "where I've been", "where I am", and
 // "where to go" never blur together at a glance in a moving car.
 //
+// Pins covered by this drive (the layer marks them as you pass within range)
+// fade to a ghost so remaining targets pop. Tapping a pin reports it to the
+// Listener (the activity shows an info card); long-pressing reports separately
+// (the activity hands off to navigation).
+//
 // Follows the HistoryOverlay pattern: one overlay drawing all pins straight to
-// the canvas from parallel primitive arrays, swapped by reference so a refresh
-// can hand off a new set without tearing. The set is tiny (~10), but keeping the
-// same shape means the same culling and the same threading story.
+// the canvas, references swapped atomically so a refresh can hand off a new set
+// without tearing. N is ~10, so the draw loop over objects is nothing.
 public class SuggestionOverlay extends Overlay {
 
     // A vivid violet, chosen to sit outside the RSRP scale (green/yellow/orange/
     // red/black) and off OSM's own road/water palette, so a pin is never mistaken
     // for a signal reading.
     private static final int ACCENT = 0xFF7C4DFF;
+    private static final int FADE_ALPHA = 0x50; // covered pins: ghosted, still legible
 
-    private volatile double[] lats = new double[0];
-    private volatile double[] lons = new double[0];
-    private volatile int[] ranks = new int[0];
+    public interface Listener {
+        void onTap(Suggestion s);
+
+        void onLongPress(Suggestion s);
+    }
+
+    private volatile Suggestion[] items = new Suggestion[0];
+    private volatile boolean[] covered = new boolean[0];
+    private volatile Listener listener;
 
     private final float coreR;
     private final float haloR;
@@ -72,16 +84,47 @@ public class SuggestionOverlay extends Overlay {
         number.setTextSize(coreR * 1.15f);
     }
 
-    // Swap in a new set of pins (parallel arrays, same length, treated as
-    // immutable). Safe from a background thread; follow with MapView.postInvalidate().
-    public void setSuggestions(double[] lat, double[] lon, int[] rank) {
-        this.lats = lat;
-        this.lons = lon;
-        this.ranks = rank;
+    public void setListener(Listener listener) {
+        this.listener = listener;
+    }
+
+    // Swap in a new set of pins. Resets covered state: a fresh suggestion set
+    // means fresh targets. Safe from a background thread; follow with
+    // MapView.postInvalidate().
+    public void setSuggestions(Suggestion[] suggestions) {
+        this.items = suggestions;
+        this.covered = new boolean[suggestions.length];
+    }
+
+    public Suggestion[] items() {
+        return items;
+    }
+
+    // Mark one pin as covered by this drive (sticky). Returns true if it was
+    // not already covered, so the caller knows a repaint is worth it.
+    public boolean markCovered(int index) {
+        boolean[] c = covered;
+        if (index < 0 || index >= c.length || c[index]) {
+            return false;
+        }
+        c[index] = true;
+        return true;
     }
 
     public int size() {
-        return lats.length;
+        return items.length;
+    }
+
+    public int remaining() {
+        Suggestion[] it = items;
+        boolean[] c = covered;
+        int n = 0;
+        for (int i = 0; i < it.length && i < c.length; i++) {
+            if (!c[i]) {
+                n++;
+            }
+        }
+        return n;
     }
 
     @Override
@@ -89,11 +132,9 @@ public class SuggestionOverlay extends Overlay {
         if (shadow) {
             return;
         }
-        final double[] la = lats;
-        final double[] lo = lons;
-        final int[] rk = ranks;
-        final int n = Math.min(la.length, Math.min(lo.length, rk.length));
-        if (n == 0) {
+        final Suggestion[] it = items;
+        final boolean[] cov = covered;
+        if (it.length == 0) {
             return;
         }
 
@@ -109,19 +150,30 @@ public class SuggestionOverlay extends Overlay {
         final double lonSlack = Math.abs(east - west) * 0.1 + 1e-4;
 
         // draw lowest priority first so rank 1 lands on top of any overlap.
-        for (int i = n - 1; i >= 0; i--) {
-            final double lat = la[i];
-            final double lon = lo[i];
-            if (lat > north + latSlack || lat < south - latSlack) {
+        for (int i = it.length - 1; i >= 0; i--) {
+            final Suggestion s = it[i];
+            if (s.lat > north + latSlack || s.lat < south - latSlack) {
                 continue;
             }
-            if (lon < west - lonSlack || lon > east + lonSlack) {
+            if (s.lon < west - lonSlack || s.lon > east + lonSlack) {
                 continue;
             }
-            reuse.setCoords(lat, lon);
+            reuse.setCoords(s.lat, s.lon);
             proj.toPixels(reuse, screen);
-            drawPin(canvas, screen.x, screen.y, rk[i]);
+            final boolean ghost = i < cov.length && cov[i];
+            setAlpha(ghost ? FADE_ALPHA : 0xFF);
+            drawPin(canvas, screen.x, screen.y, s.rank);
         }
+        setAlpha(0xFF); // leave paints opaque for the next draw pass
+    }
+
+    private void setAlpha(int alpha) {
+        halo.setAlpha(alpha);
+        fill.setAlpha(alpha);
+        rim.setAlpha(alpha);
+        stemWhite.setAlpha(alpha);
+        stemFill.setAlpha(alpha);
+        number.setAlpha(alpha);
     }
 
     // one pin: tip at (tipX, tipY) = the target; head centred above it.
@@ -156,5 +208,59 @@ public class SuggestionOverlay extends Overlay {
         final Paint.FontMetrics fm = number.getFontMetrics();
         final float baseline = headCy - (fm.ascent + fm.descent) / 2f;
         canvas.drawText(Integer.toString(rank), tipX, baseline, number);
+    }
+
+    // -- touch -----------------------------------------------------------
+
+    // Highest-priority pin whose head or tip is under the touch, or -1. Head
+    // centre sits stemLen+coreR above the tip in screen space; a generous
+    // radius keeps it hittable from a car.
+    private int hit(MotionEvent e, MapView mapView) {
+        final Suggestion[] it = items;
+        if (it.length == 0) {
+            return -1;
+        }
+        final Projection proj = mapView.getProjection();
+        final float slop = haloR * 1.35f;
+        for (int i = 0; i < it.length; i++) { // ascending rank: topmost pin wins
+            reuse.setCoords(it[i].lat, it[i].lon);
+            proj.toPixels(reuse, screen);
+            final float headX = screen.x;
+            final float headY = screen.y - stemLen - coreR;
+            final float dxh = e.getX() - headX;
+            final float dyh = e.getY() - headY;
+            if (dxh * dxh + dyh * dyh <= slop * slop) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    @Override
+    public boolean onSingleTapConfirmed(MotionEvent e, MapView mapView) {
+        final Listener l = listener;
+        if (l == null || !isEnabled()) {
+            return false;
+        }
+        int i = hit(e, mapView);
+        if (i < 0) {
+            return false; // not ours: let the map handle it
+        }
+        l.onTap(items[i]);
+        return true;
+    }
+
+    @Override
+    public boolean onLongPress(MotionEvent e, MapView mapView) {
+        final Listener l = listener;
+        if (l == null || !isEnabled()) {
+            return false;
+        }
+        int i = hit(e, mapView);
+        if (i < 0) {
+            return false;
+        }
+        l.onLongPress(items[i]);
+        return true;
     }
 }

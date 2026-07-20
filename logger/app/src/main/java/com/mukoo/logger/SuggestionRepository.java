@@ -36,6 +36,9 @@ public class SuggestionRepository {
     // last-fetched GeoJSON, in app-private storage so it survives offline.
     private static final String CACHE_FILE = "suggestions.geojson";
     private static final String CACHE_TMP = "suggestions.geojson.tmp";
+    // the server's ETag for the cached body: sent back as If-None-Match so an
+    // unchanged suggestion set costs a 304, not a re-download over a rural link.
+    private static final String ETAG_FILE = "suggestions.etag";
 
     private final Context context;
 
@@ -86,8 +89,18 @@ public class SuggestionRepository {
             conn.setConnectTimeout(10000);
             conn.setReadTimeout(20000);
             conn.setRequestProperty("Accept", "application/geo+json, application/json");
+            // conditional GET: only pay for the body when the set changed. Only
+            // valid while we still hold the cache the ETag describes.
+            String etag = readSmallFile(ETAG_FILE);
+            if (etag != null && new File(context.getFilesDir(), CACHE_FILE).isFile()) {
+                conn.setRequestProperty("If-None-Match", etag);
+            }
 
             int code = conn.getResponseCode();
+            // 304 == our cache IS the current set; nothing to download.
+            if (code == HttpURLConnection.HTTP_NOT_MODIFIED) {
+                return;
+            }
             // 404 == no suggestions generated yet; anything but 200 -> keep the
             // existing cache untouched.
             if (code != 200) {
@@ -121,12 +134,50 @@ public class SuggestionRepository {
                 //noinspection ResultOfMethodCallIgnored
                 tmp.renameTo(dest);
             }
+            // remember the validator for the body we just cached (best-effort:
+            // a missing ETag simply means full downloads until the next 200).
+            String newTag = conn.getHeaderField("ETag");
+            writeSmallFile(ETAG_FILE, newTag);
         } catch (Exception e) {
             // offline, timeout, server down — the cache (if any) stays valid.
         } finally {
             if (conn != null) {
                 conn.disconnect();
             }
+        }
+    }
+
+    private String readSmallFile(String name) {
+        File f = new File(context.getFilesDir(), name);
+        if (!f.isFile()) {
+            return null;
+        }
+        try (InputStream in = new java.io.FileInputStream(f)) {
+            byte[] bytes = new byte[(int) f.length()];
+            int off = 0, r;
+            while (off < bytes.length && (r = in.read(bytes, off, bytes.length - off)) != -1) {
+                off += r;
+            }
+            String s = new String(bytes, StandardCharsets.UTF_8).trim();
+            return s.isEmpty() ? null : s;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void writeSmallFile(String name, String value) {
+        File f = new File(context.getFilesDir(), name);
+        try {
+            if (value == null) {
+                //noinspection ResultOfMethodCallIgnored
+                f.delete();
+                return;
+            }
+            try (java.io.FileOutputStream os = new java.io.FileOutputStream(f)) {
+                os.write(value.getBytes(StandardCharsets.UTF_8));
+            }
+        } catch (Exception e) {
+            // best-effort; a lost ETag only costs one full re-download.
         }
     }
 
@@ -175,7 +226,8 @@ public class SuggestionRepository {
                 if (road != null && (road.isEmpty() || "null".equals(road))) {
                     road = null;
                 }
-                out.add(new Suggestion(rank, lat, lon, stddev, road));
+                int visitOrder = props == null ? 0 : props.optInt("visit_order", 0);
+                out.add(new Suggestion(rank, lat, lon, stddev, road, visitOrder));
             }
         } catch (Exception e) {
             return new ArrayList<>();

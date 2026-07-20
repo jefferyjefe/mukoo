@@ -26,6 +26,8 @@ import com.mukoo.logger.map.LiveFeed;
 import com.mukoo.logger.map.LiveMapController;
 import com.mukoo.logger.map.LiveMetrics;
 import com.mukoo.logger.map.OsmConfig;
+import com.mukoo.logger.map.Suggestion;
+import com.mukoo.logger.map.TargetArrowOverlay;
 
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.views.MapView;
@@ -66,6 +68,10 @@ public class MainActivity extends Activity {
     private LiveMapController miniController;
     private TextView metricsMain;
     private TextView metricsSub;
+    // edge chevron pointing at the nearest drive target; the glance map stays
+    // live-only (no pins), this one arrow gives it direction without clutter.
+    private TargetArrowOverlay targetArrow;
+    private SuggestionRepository suggestionRepo;
     // the latest fix the LiveFeed handed us; the health line ages it each second.
     private volatile Location lastLiveLoc;
 
@@ -158,9 +164,19 @@ public class MainActivity extends Activity {
         liveFeed = new LiveFeed(this);
         miniController = new LiveMapController(miniMap, density, (loc, reading) -> {
             lastLiveLoc = loc;   // reused by the health line; no second reader
+            if (loc != null && targetArrow != null) {
+                targetArrow.setPosition(loc.getLatitude(), loc.getLongitude());
+            }
             LiveMetrics.render(metricsMain, metricsSub, loc, reading);
         });
         liveFeed.addListener(miniController);
+
+        // nearest-target chevron on top of the live layer. Data is the local
+        // suggestion cache only (no network on this screen; the full map owns
+        // refreshing), loaded off-thread on resume.
+        targetArrow = new TargetArrowOverlay(density);
+        miniMap.getOverlays().add(targetArrow);
+        suggestionRepo = new SuggestionRepository(this);
     }
 
     @Override
@@ -170,6 +186,12 @@ public class MainActivity extends Activity {
         miniMap.onResume();
         liveFeed.start();
         syncDrivingState();
+        // glance arrow data: cached suggestions only, read off-thread.
+        drainExec.execute(() -> {
+            java.util.List<Suggestion> cached = suggestionRepo.loadCached();
+            targetArrow.setTargets(cached);
+            miniMap.postInvalidate();
+        });
         // drain any stranded rows now, and again whenever a network shows up
         // while this screen is open.
         maybeDrain();
