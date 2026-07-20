@@ -8,9 +8,30 @@ version = "0.1.0"
 description = "Mukoo coverage model — kriging / RF propagation over ingested measurements"
 readme = "README.md"
 requires-python = ">=3.9"
-# Interpolation/propagation dependencies (numpy, scipy, pykrige, rasterio, ...)
-# will be pinned here as the model package is built out.
-dependencies = []
+dependencies = [
+  # Numerics + geostatistics.
+  "numpy>=1.24,<2",
+  "scipy>=1.10",
+  "PyKrige>=1.7",          # ordinary kriging with per-point variance
+  # Read points from PostGIS (same stack as the ingest package).
+  "SQLAlchemy>=2.0,<3",
+  "GeoAlchemy2>=0.14",
+  "psycopg2-binary>=2.9",
+  # Project lon/lat -> metric UTM so variograms are in metres, and write rasters.
+  "pyproj>=3.4",
+  "rasterio>=1.3",         # GeoTIFF export (bundles GDAL)
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.4",
+]
+
+[project.scripts]
+mukoo-krige = "mukoo_model.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
