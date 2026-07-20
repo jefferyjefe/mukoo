@@ -85,3 +85,44 @@ def test_body_is_served_verbatim(tmp_path):
 
     r = client.get("/v1/suggestions")
     assert r.get_data(as_text=True) == raw
+
+
+def test_etag_present_and_matching_if_none_match_yields_304(tmp_path):
+    f = tmp_path / "s.geojson"
+    f.write_text(json.dumps(SAMPLE_GEOJSON))
+    client = _client(f)
+
+    first = client.get("/v1/suggestions")
+    etag = first.headers.get("ETag")
+    assert etag and etag.startswith('"')
+    assert first.headers.get("Last-Modified")
+
+    second = client.get("/v1/suggestions", headers={"If-None-Match": etag})
+    assert second.status_code == 304
+    assert second.get_data() == b""
+    assert second.headers.get("ETag") == etag
+
+
+def test_changed_file_changes_etag_and_serves_200(tmp_path):
+    f = tmp_path / "s.geojson"
+    f.write_text(json.dumps(SAMPLE_GEOJSON))
+    client = _client(f)
+    etag = client.get("/v1/suggestions").headers["ETag"]
+
+    changed = dict(SAMPLE_GEOJSON)
+    changed["properties"] = {"metric": "rsrp", "count": 0}
+    f.write_text(json.dumps(changed))
+
+    r = client.get("/v1/suggestions", headers={"If-None-Match": etag})
+    assert r.status_code == 200  # stale validator -> full body
+    assert r.headers["ETag"] != etag
+
+
+def test_if_modified_since_matches_yields_304(tmp_path):
+    f = tmp_path / "s.geojson"
+    f.write_text(json.dumps(SAMPLE_GEOJSON))
+    client = _client(f)
+    lm = client.get("/v1/suggestions").headers["Last-Modified"]
+
+    r = client.get("/v1/suggestions", headers={"If-Modified-Since": lm})
+    assert r.status_code == 304

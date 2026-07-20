@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import gzip
+import hashlib
 import json
+from email.utils import format_datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -98,6 +101,7 @@ def create_app(config: Optional[Config] = None) -> Flask:
         try:
             body = path.read_text()
             json.loads(body)  # guard against serving a truncated/partial write
+            mtime = path.stat().st_mtime
         except (OSError, ValueError):
             return (
                 jsonify(
@@ -106,7 +110,26 @@ def create_app(config: Optional[Config] = None) -> Flask:
                 ),
                 500,
             )
+
+        # Conditional GET: the field logger re-checks on every map open, over a
+        # rural link — an unchanged file should cost a 304, not a re-download.
+        # Strong ETag over the bytes (content identity, robust to mtime games);
+        # Last-Modified as the fallback validator for simpler clients.
+        etag = f'"{hashlib.md5(body.encode("utf-8")).hexdigest()}"'
+        last_modified = format_datetime(
+            datetime.fromtimestamp(mtime, tz=timezone.utc), usegmt=True
+        )
+        headers = {"ETag": etag, "Last-Modified": last_modified}
+
+        if_none_match = request.headers.get("If-None-Match")
+        if if_none_match and etag in [v.strip() for v in if_none_match.split(",")]:
+            return Response(status=304, headers=headers)
+        if if_none_match is None:  # If-None-Match wins over If-Modified-Since
+            ims = request.headers.get("If-Modified-Since")
+            if ims == last_modified:
+                return Response(status=304, headers=headers)
+
         # Raw pass-through with the GeoJSON media type; the phone parses it.
-        return Response(body, mimetype="application/geo+json")
+        return Response(body, mimetype="application/geo+json", headers=headers)
 
     return app
