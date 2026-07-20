@@ -37,4 +37,5 @@ infra/.env
 # Active-learning route suggestions + cached OSM road network (mukoo-suggest)
 *_drive_suggestions.geojson
 osm_cache/
-cache/          # osmnx's own Overpass HTTP response cache
+# osmnx's own Overpass HTTP response cache
+cache/
