@@ -38,6 +38,10 @@ DEFAULT_NLAGS = 12
 DEFAULT_CV_FOLDS = 10
 DEFAULT_CV_SEED = 0
 
+# Tile size for spatial block CV. ~2 km sits between the cell size and the
+# variogram range, so held-out blocks are genuinely "away" from training data.
+DEFAULT_CV_BLOCK_M = 2000.0
+
 
 @dataclass(frozen=True)
 class Config:
@@ -48,6 +52,7 @@ class Config:
     nlags: int = DEFAULT_NLAGS
     cv_folds: int = DEFAULT_CV_FOLDS
     cv_seed: int = DEFAULT_CV_SEED
+    cv_block_m: float = DEFAULT_CV_BLOCK_M
 
     @classmethod
     def from_env(cls) -> "Config":

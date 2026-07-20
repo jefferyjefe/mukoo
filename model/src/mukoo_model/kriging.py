@@ -93,9 +93,17 @@ class OrdinaryKrigingModel:
         *,
         variogram_model: str = "exponential",
         nlags: int = 12,
+        anisotropy_scaling: float = 1.0,
+        anisotropy_angle: float = 0.0,
     ) -> None:
+        # anisotropy_scaling stretches distances perpendicular to
+        # anisotropy_angle (degrees CCW from east): signal along a road can
+        # decorrelate differently from across it. 1.0/0.0 = isotropic (default);
+        # scan_anisotropy() in compare mode searches for a better pair by CV.
         self.variogram_model = variogram_model
         self.nlags = nlags
+        self.anisotropy_scaling = anisotropy_scaling
+        self.anisotropy_angle = anisotropy_angle
         self._ok: OrdinaryKriging | None = None
         self._metric: str = ""
         self._n_points: int = 0
@@ -118,6 +126,8 @@ class OrdinaryKrigingModel:
             np.asarray(values, dtype=np.float64),
             variogram_model=self.variogram_model,
             nlags=self.nlags,
+            anisotropy_scaling=self.anisotropy_scaling,
+            anisotropy_angle=self.anisotropy_angle,
             enable_plotting=False,
             coordinates_type="euclidean",
         )
@@ -142,6 +152,9 @@ class OrdinaryKrigingModel:
         ok = self._require_fit()
         raw = [float(v) for v in np.asarray(ok.variogram_model_parameters).ravel()]
         out: dict = {"model": self.variogram_model, "raw": raw, "nlags": self.nlags}
+        if self.anisotropy_scaling != 1.0 or self.anisotropy_angle != 0.0:
+            out["anisotropy_scaling"] = self.anisotropy_scaling
+            out["anisotropy_angle"] = self.anisotropy_angle
         if self.variogram_model in _PSILL_RANGE_NUGGET and len(raw) == 3:
             psill, rng, nugget = raw
             out.update(

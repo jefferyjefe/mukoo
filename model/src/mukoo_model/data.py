@@ -37,6 +37,11 @@ class PointCloud:
     original WGS84 coordinates, kept so results can be related back to the map.
     ``values`` is the modelled metric (RSRP, dBm). Coincident points have been
     collapsed to one averaged value — see :func:`load_rsrp_points`.
+
+    ``session``/``cell`` are optional per-point labels (drive session id and
+    serving cell id): session labels drive leave-one-session-out CV, cell ids
+    drive tower estimation for the path-loss prior. After collapsing, a merged
+    group keeps its first member's labels.
     """
 
     lon: np.ndarray
@@ -47,6 +52,8 @@ class PointCloud:
     crs_epsg: int
     metric: str
     n_raw: int  # rows returned by the query, before collapsing duplicates
+    session: np.ndarray | None = None  # (n,) str labels, or None
+    cell: np.ndarray | None = None  # (n,) str labels ("" where null), or None
 
     @property
     def n(self) -> int:
@@ -77,8 +84,13 @@ class PointCloud:
 
 
 def _collapse_coincident(
-    x: np.ndarray, y: np.ndarray, values: np.ndarray, *, tol_m: float = 1.0
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    x: np.ndarray,
+    y: np.ndarray,
+    values: np.ndarray,
+    *,
+    tol_m: float = 1.0,
+    labels: "tuple[np.ndarray, ...]" = (),
+) -> "tuple[np.ndarray, np.ndarray, np.ndarray, tuple[np.ndarray, ...]]":
     """Average the value at points sharing a projected location.
 
     Ordinary kriging builds a matrix of point-to-point covariances; two points
@@ -86,23 +98,29 @@ def _collapse_coincident(
     means genuine repeats land within a metre or so, so we snap to a ``tol_m``
     grid, group, and average the metric within each occupied cell. Returns the
     representative coordinate (the group mean) and averaged value per group.
+
+    ``labels`` are optional per-point label arrays (session, cell, ...) carried
+    through the collapse; a merged group keeps its first member's label.
     """
     keys = np.stack(
         [np.round(x / tol_m).astype(np.int64), np.round(y / tol_m).astype(np.int64)],
         axis=1,
     )
-    _, inverse, counts = np.unique(keys, axis=0, return_inverse=True, return_counts=True)
+    _, first_idx, inverse, counts = np.unique(
+        keys, axis=0, return_index=True, return_inverse=True, return_counts=True
+    )
     inverse = inverse.ravel()
     n_groups = counts.shape[0]
     if n_groups == x.shape[0]:
-        return x, y, values  # nothing coincident
+        return x, y, values, labels  # nothing coincident
 
     def _mean_by_group(a: np.ndarray) -> np.ndarray:
         sums = np.zeros(n_groups, dtype=np.float64)
         np.add.at(sums, inverse, a)
         return sums / counts
 
-    return _mean_by_group(x), _mean_by_group(y), _mean_by_group(values)
+    kept_labels = tuple(lab[first_idx] for lab in labels)
+    return _mean_by_group(x), _mean_by_group(y), _mean_by_group(values), kept_labels
 
 
 def load_rsrp_points(
@@ -127,7 +145,8 @@ def load_rsrp_points(
     if where:
         predicate = f"({predicate}) AND ({where})"
     sql = text(
-        f"SELECT ST_X(geom) AS lon, ST_Y(geom) AS lat, {metric} AS value "
+        f"SELECT ST_X(geom) AS lon, ST_Y(geom) AS lat, {metric} AS value, "
+        f"session_id::text AS session, coalesce(cell_id, '') AS cell "
         f"FROM measurements WHERE {predicate} ORDER BY id"
     )
 
@@ -142,6 +161,8 @@ def load_rsrp_points(
     lon = np.array([r.lon for r in rows], dtype=np.float64)
     lat = np.array([r.lat for r in rows], dtype=np.float64)
     values = np.array([float(r.value) for r in rows], dtype=np.float64)
+    session = np.array([r.session for r in rows], dtype=object)
+    cell = np.array([r.cell for r in rows], dtype=object)
     n_raw = lon.shape[0]
 
     crs_epsg = utm_epsg_for(float(lon.mean()), float(lat.mean()))
@@ -150,7 +171,9 @@ def load_rsrp_points(
     x = np.asarray(x, dtype=np.float64)
     y = np.asarray(y, dtype=np.float64)
 
-    x, y, values = _collapse_coincident(x, y, values)
+    x, y, values, (session, cell) = _collapse_coincident(
+        x, y, values, labels=(session, cell)
+    )
 
     # Re-derive lon/lat for the (possibly averaged) projected coordinates so the
     # two coordinate views stay consistent after collapsing duplicates.
@@ -166,4 +189,6 @@ def load_rsrp_points(
         crs_epsg=crs_epsg,
         metric=metric,
         n_raw=n_raw,
+        session=session,
+        cell=cell,
     )

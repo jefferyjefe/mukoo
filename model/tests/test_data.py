@@ -22,10 +22,9 @@ def test_collapse_coincident_averages_duplicate_locations():
     x = np.array([0.0, 0.0, 100.0])
     y = np.array([0.0, 0.0, 100.0])
     v = np.array([10.0, 20.0, 5.0])
-    cx, cy, cv = _collapse_coincident(x, y, v, tol_m=1.0)
+    cx, cy, cv, _ = _collapse_coincident(x, y, v, tol_m=1.0)
     assert cx.shape == (2,)
     # The collapsed group's value is the mean of the coincident pair.
-    order = np.argsort(cx)
     assert np.allclose(np.sort(cv), sorted([15.0, 5.0]))
     assert 15.0 in np.round(cv, 6)
 
@@ -34,7 +33,7 @@ def test_collapse_coincident_noop_when_all_distinct():
     x = np.array([0.0, 100.0, 200.0])
     y = np.array([0.0, 100.0, 200.0])
     v = np.array([1.0, 2.0, 3.0])
-    cx, cy, cv = _collapse_coincident(x, y, v)
+    cx, cy, cv, _ = _collapse_coincident(x, y, v)
     assert cx.shape == (3,)
     assert np.array_equal(cv, v)
 
@@ -44,6 +43,17 @@ def test_collapse_snaps_within_tolerance():
     x = np.array([0.0, 0.3])
     y = np.array([0.0, 0.2])
     v = np.array([10.0, 30.0])
-    cx, cy, cv = _collapse_coincident(x, y, v, tol_m=1.0)
+    cx, cy, cv, _ = _collapse_coincident(x, y, v, tol_m=1.0)
     assert cx.shape == (1,)
     assert np.isclose(cv[0], 20.0)
+
+
+def test_collapse_carries_labels_first_of_group():
+    # A merged group keeps its first member's labels (session, cell, ...).
+    x = np.array([0.0, 0.3, 100.0])
+    y = np.array([0.0, 0.2, 100.0])
+    v = np.array([10.0, 30.0, 5.0])
+    session = np.array(["s1", "s2", "s3"], dtype=object)
+    cx, cy, cv, (kept,) = _collapse_coincident(x, y, v, tol_m=1.0, labels=(session,))
+    assert cx.shape == (2,)
+    assert set(kept) == {"s1", "s3"}  # s2 merged into the s1 group

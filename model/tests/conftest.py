@@ -14,11 +14,15 @@ import pytest
 from mukoo_model.data import PointCloud
 
 
-def make_linear_cloud(n: int = 300, noise: float = 0.5, seed: int = 0) -> PointCloud:
+def make_linear_cloud(
+    n: int = 300, noise: float = 0.5, seed: int = 0, n_sessions: int = 0
+) -> PointCloud:
     """A smooth planar field over a ~10 km x 10 km UTM patch, plus light noise.
 
     RSRP-like values around -100 dBm with a spatial gradient, so kriging has real
-    structure to exploit and cross-validation skill should be high.
+    structure to exploit and cross-validation skill should be high. With
+    ``n_sessions`` > 0, points get session labels by vertical stripe — spatially
+    disjoint, like real drives covering different roads.
     """
     rng = np.random.RandomState(seed)
     x = rng.rand(n) * 10000.0
@@ -26,8 +30,20 @@ def make_linear_cloud(n: int = 300, noise: float = 0.5, seed: int = 0) -> PointC
     z = -100.0 + 6e-4 * x + 4e-4 * y + rng.randn(n) * noise
     lon = -81.8 + x / 1e5
     lat = 32.35 + y / 1e5
+    session = None
+    if n_sessions > 0:
+        stripe = np.minimum((x / 10000.0 * n_sessions).astype(int), n_sessions - 1)
+        session = np.array([f"session-{s}" for s in stripe], dtype=object)
     return PointCloud(
-        lon=lon, lat=lat, x=x, y=y, values=z, crs_epsg=32617, metric="rsrp", n_raw=n
+        lon=lon,
+        lat=lat,
+        x=x,
+        y=y,
+        values=z,
+        crs_epsg=32617,
+        metric="rsrp",
+        n_raw=n,
+        session=session,
     )
 
 

@@ -36,6 +36,7 @@ class CVResult:
 
     n: int
     n_folds: int
+    scheme: str  # "random 10-fold" | "leave-one-session-out" | "block 2000m" ...
     rmse: float
     mae: float
     bias: float  # mean(pred - actual); >0 means predictions run high
@@ -59,7 +60,7 @@ class CVResult:
     def summary(self) -> str:
         """Human-readable block, accuracy first then calibration."""
         lines = [
-            f"Cross-validation ({self.n_folds}-fold) of {self.metric} "
+            f"Cross-validation [{self.scheme}] of {self.metric} "
             f"on {self.n} points",
             "-" * 60,
             "ACCURACY (held-out predicted vs actual)",
@@ -109,6 +110,7 @@ class CVResult:
         return {
             "n": self.n,
             "n_folds": self.n_folds,
+            "scheme": self.scheme,
             "metric": self.metric,
             "accuracy": {
                 "rmse": self.rmse,
@@ -141,18 +143,17 @@ def _fold_indices(n: int, n_folds: int, seed: int) -> list[np.ndarray]:
     return [np.sort(f) for f in np.array_split(order, n_folds)]
 
 
-def kfold_cv(
+def _run_folds(
     cloud: PointCloud,
-    *,
+    folds: "list[np.ndarray]",
     model_factory: ModelFactory,
-    n_folds: int = 10,
-    seed: int = 0,
+    scheme: str,
 ) -> CVResult:
-    """Run k-fold CV and return aggregate metrics + per-point predictions.
+    """Shared fold loop: refit on train, predict held-out, aggregate.
 
-    ``model_factory`` builds a fresh (unfitted) kriging model each fold, so the
-    variogram is refit on the training subset — the held-out fold never informs
-    its own prediction. Set ``n_folds == cloud.n`` for leave-one-out.
+    ``model_factory`` builds a fresh (unfitted) model each fold, so everything —
+    variogram, and for regression kriging the trend and towers too — is refit on
+    the training subset; the held-out fold never informs its own prediction.
     """
     x, y, z = cloud.x, cloud.y, cloud.values
     n = cloud.n
@@ -161,7 +162,7 @@ def kfold_cv(
     predicted = np.empty(n, dtype=np.float64)
     kstd = np.empty(n, dtype=np.float64)
 
-    for test_idx in _fold_indices(n, n_folds, seed):
+    for test_idx in folds:
         train_mask = np.ones(n, dtype=bool)
         train_mask[test_idx] = False
         model = model_factory().fit_arrays(
@@ -172,7 +173,85 @@ def kfold_cv(
         predicted[test_idx] = mean
         kstd[test_idx] = np.sqrt(np.clip(var, 0.0, None))
 
-    return _metrics(actual, predicted, kstd, n_folds=n_folds, metric=cloud.metric)
+    return _metrics(
+        actual, predicted, kstd, n_folds=len(folds), scheme=scheme, metric=cloud.metric
+    )
+
+
+def kfold_cv(
+    cloud: PointCloud,
+    *,
+    model_factory: ModelFactory,
+    n_folds: int = 10,
+    seed: int = 0,
+) -> CVResult:
+    """Random k-fold CV. Set ``n_folds == cloud.n`` for leave-one-out.
+
+    Caveat for along-road GPS data: random folds hold out points that sit metres
+    from training points on the same track, so these numbers measure *near-road*
+    interpolation and flatter the model for the gaps between roads. Read them
+    together with :func:`session_cv` / :func:`block_cv`.
+    """
+    folds = _fold_indices(cloud.n, n_folds, seed)
+    return _run_folds(cloud, folds, model_factory, f"random {n_folds}-fold")
+
+
+def _folds_from_labels(labels: np.ndarray) -> "list[np.ndarray]":
+    """One fold per unique label value (order-stable)."""
+    _, inverse = np.unique(np.asarray(labels, dtype=object), return_inverse=True)
+    return [np.where(inverse == g)[0] for g in range(int(inverse.max()) + 1)]
+
+
+def session_cv(cloud: PointCloud, *, model_factory: ModelFactory) -> CVResult:
+    """Leave-one-session-out CV — the honest between-drives error.
+
+    Each drive session is held out whole, so the model predicts a track it has
+    never seen from the *other* drives' data. With sessions covering different
+    roads this approximates "how wrong is the surface on an undriven road",
+    which random k-fold cannot measure (its held-out points sit metres from
+    training points on the same track).
+    """
+    if cloud.session is None:
+        raise ValueError("cloud has no session labels; reload with load_rsrp_points")
+    folds = _folds_from_labels(cloud.session)
+    if len(folds) < 2:
+        raise ValueError("session CV needs at least 2 sessions")
+    return _run_folds(
+        cloud, folds, model_factory, f"leave-one-session-out ({len(folds)} sessions)"
+    )
+
+
+def block_cv(
+    cloud: PointCloud,
+    *,
+    model_factory: ModelFactory,
+    block_m: float = 2000.0,
+    n_folds: int = 10,
+    seed: int = 0,
+) -> CVResult:
+    """Spatial block CV: tile the area into ``block_m`` squares, hold out whole
+    blocks. Points in a held-out block are predicted only from data ≥ the block
+    scale away, so — like session CV — this measures between-area skill rather
+    than along-track densification. Blocks are randomly grouped into
+    ``n_folds`` folds (fewer if there are fewer blocks).
+    """
+    bx = np.floor((cloud.x - cloud.x.min()) / block_m).astype(np.int64)
+    by = np.floor((cloud.y - cloud.y.min()) / block_m).astype(np.int64)
+    labels = bx * 1_000_003 + by  # unique per (bx, by) tile
+    uniq = np.unique(labels)
+    k = min(n_folds, uniq.shape[0])
+    if k < 2:
+        raise ValueError(f"block_m={block_m} yields {uniq.shape[0]} block(s); shrink it")
+    rng = np.random.RandomState(seed)
+    block_fold = {b: i % k for i, b in enumerate(rng.permutation(uniq))}
+    fold_of_point = np.array([block_fold[b] for b in labels])
+    folds = [np.where(fold_of_point == f)[0] for f in range(k)]
+    return _run_folds(
+        cloud,
+        folds,
+        model_factory,
+        f"spatial block {block_m:.0f}m ({uniq.shape[0]} blocks, {k} folds)",
+    )
 
 
 def _metrics(
@@ -181,6 +260,7 @@ def _metrics(
     kriging_std: np.ndarray,
     *,
     n_folds: int,
+    scheme: str,
     metric: str,
 ) -> CVResult:
     error = predicted - actual
@@ -202,6 +282,7 @@ def _metrics(
     return CVResult(
         n=n,
         n_folds=n_folds,
+        scheme=scheme,
         rmse=float(np.sqrt(sse / n)),
         mae=float(np.mean(np.abs(error))),
         bias=float(np.mean(error)),

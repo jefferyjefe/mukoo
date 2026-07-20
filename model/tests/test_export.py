@@ -76,6 +76,7 @@ def test_build_and_write_report(tmp_path, linear_cloud):
     )
     out = write_report_json(tmp_path / "report.json", report)
     assert out.exists()
-    assert report["cross_validation"]["accuracy"]["rmse"] == cv.rmse
+    # cross_validation is keyed by scheme (one entry per scheme that ran)
+    assert report["cross_validation"][cv.scheme]["accuracy"]["rmse"] == cv.rmse
     assert report["variogram"]["model"] == surface.variogram_model
     assert report["grid"]["rows"] == surface.grid.shape[0]

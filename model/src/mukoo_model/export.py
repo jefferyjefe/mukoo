@@ -100,18 +100,24 @@ def write_surfaces(
 
 def build_report(
     surface: SurfaceResult,
-    cv: CVResult,
+    cvs: "CVResult | list[CVResult]",
     *,
     n_raw: int,
     n_merged: int,
     bounds_lonlat: tuple[float, float, float, float],
     surface_paths: dict[str, Path],
 ) -> dict:
-    """Assemble the JSON run report: CV metrics, variogram, grid, provenance."""
+    """Assemble the JSON run report: CV metrics, variogram, grid, provenance.
+
+    ``cross_validation`` holds one entry per scheme, keyed by the scheme label,
+    in reporting order (session first when present — the honest number).
+    """
+    if isinstance(cvs, CVResult):
+        cvs = [cvs]
     lon_min, lat_min, lon_max, lat_max = bounds_lonlat
     return {
         "metric": surface.metric,
-        "cross_validation": cv.to_dict(),
+        "cross_validation": {cv.scheme: cv.to_dict() for cv in cvs},
         "variogram": surface.variogram_params,
         "grid": {
             "crs": f"EPSG:{surface.grid.crs_epsg}",
