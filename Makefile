@@ -16,6 +16,7 @@ help:
 	@echo "test       run the ingest + model test suites"
 	@echo "test-model run the model test suite only"
 	@echo "krige      run ordinary kriging of RSRP -> surfaces in ~/mukoo"
+	@echo "suggest    suggest next drive targets (needs the kriging surface) -> ~/mukoo"
 	@echo "api        run the Flask API locally"
 
 install:
@@ -39,6 +40,9 @@ test-model:
 
 krige:
 	mukoo-krige --metric rsrp
+
+suggest:
+	mukoo-suggest --metric rsrp
 
 api:
 	flask --app mukoo_ingest.wsgi:app run

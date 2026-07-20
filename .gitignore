@@ -33,3 +33,8 @@ infra/.env
 *_kriging_variance.tif
 *_kriging_stddev.tif
 *_kriging_report.json
+
+# Active-learning route suggestions + cached OSM road network (mukoo-suggest)
+*_drive_suggestions.geojson
+osm_cache/
+cache/          # osmnx's own Overpass HTTP response cache
