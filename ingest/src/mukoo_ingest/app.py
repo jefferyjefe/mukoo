@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import gzip
 import json
+from pathlib import Path
 from typing import Optional
 
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request
 from pydantic import ValidationError
 from sqlalchemy import text
 
@@ -74,5 +75,38 @@ def create_app(config: Optional[Config] = None) -> Flask:
 
         result = ingest_batch(engine, batch)
         return jsonify(result.as_dict()), 200
+
+    @app.get("/v1/suggestions")
+    def get_suggestions():
+        """Serve the active-learning drive suggestions as GeoJSON.
+
+        A lightweight read of the file the model package writes
+        (``mukoo-suggest`` -> ``rsrp_drive_suggestions.geojson``). The field
+        logger fetches this when online and caches it locally, so this endpoint
+        stays read-only and does not touch the database. 404 until suggestions
+        have been generated; the client then falls back to its own last cache.
+        """
+        path = Path(config.suggestions_path)
+        if not path.is_file():
+            return (
+                jsonify(
+                    error="no_suggestions",
+                    detail="No drive suggestions have been generated yet",
+                ),
+                404,
+            )
+        try:
+            body = path.read_text()
+            json.loads(body)  # guard against serving a truncated/partial write
+        except (OSError, ValueError):
+            return (
+                jsonify(
+                    error="unreadable_suggestions",
+                    detail="Suggestions file is missing or not valid JSON",
+                ),
+                500,
+            )
+        # Raw pass-through with the GeoJSON media type; the phone parses it.
+        return Response(body, mimetype="application/geo+json")
 
     return app
