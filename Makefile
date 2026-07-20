@@ -3,6 +3,9 @@
 
 DATABASE_URL ?= postgresql+psycopg2://mukoo:mukoo@localhost:5432/mukoo
 export DATABASE_URL
+# The ingest suite truncates tables; it must always target the *_test database.
+TEST_DATABASE_URL ?= postgresql+psycopg2://mukoo:mukoo@localhost:5432/mukoo_test
+export TEST_DATABASE_URL
 
 COMPOSE = docker compose -f infra/docker-compose.yml
 

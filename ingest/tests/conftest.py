@@ -22,7 +22,7 @@ from mukoo_ingest.db import make_engine
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DB_DIR = REPO_ROOT / "db"
 
-DEFAULT_TEST_URL = "postgresql+psycopg2://mukoo:mukoo@localhost:5432/mukoo"
+DEFAULT_TEST_URL = "postgresql+psycopg2://mukoo:mukoo@localhost:5432/mukoo_test"
 
 
 def _database_url() -> str:
@@ -36,6 +36,17 @@ def _database_url() -> str:
 @pytest.fixture(scope="session")
 def database_url() -> str:
     url = _database_url()
+
+    # HARD GUARD: this suite TRUNCATEs the measurements table around every
+    # test. Running it against a database whose name doesn't end in "_test"
+    # (e.g. because DATABASE_URL points at dev and TEST_DATABASE_URL is unset)
+    # destroys real field data. Refuse, loudly, rather than trust the caller.
+    db_name = url.rsplit("/", 1)[-1].split("?")[0]
+    if not db_name.endswith("_test"):
+        pytest.skip(
+            f"Refusing to run destructive DB tests against {db_name!r} — the "
+            "suite truncates tables. Set TEST_DATABASE_URL to a *_test database."
+        )
 
     engine = make_engine(url)
     try:
