@@ -16,17 +16,21 @@ from typing import Optional
 import numpy as np
 from pyproj import Transformer
 
+import json
+
 from .config import Config
 from .data import WGS84_EPSG, load_rsrp_points
 from .db import make_engine
 from .kriging import Grid, OrdinaryKrigingModel, make_grid
 from .raster import load_grid_surface
 from .roads import fetch_roads
+from .route import apply_visit_order, write_gpx
 from .suggest import (
     DEFAULT_CANDIDATE_QUANTILE,
     DEFAULT_MAX_ROAD_DIST_M,
     DEFAULT_MIN_SEPARATION_M,
     DEFAULT_TOP_N,
+    DEFAULT_WEAK_BIAS,
     Suggestion,
     suggest_targets,
     write_suggestions_geojson,
@@ -37,8 +41,10 @@ from .suggest import (
 class SuggestResult:
     suggestions: list
     output_path: Path
+    gpx_path: Optional[Path]
     n_roads: int
     stddev_source: str  # "geotiff:<path>" or "recomputed"
+    range_m: Optional[float]  # variogram range used for EVR scoring, if known
 
 
 def bounds_lonlat_of_grid(grid: Grid) -> tuple:
@@ -58,14 +64,28 @@ def bounds_lonlat_of_grid(grid: Grid) -> tuple:
     return (float(min(lons)), float(min(lats)), float(max(lons)), float(max(lats)))
 
 
-def _recompute_stddev(config: Config, metric: str) -> tuple[np.ndarray, Grid]:
+def _recompute_surfaces(
+    config: Config, metric: str
+) -> "tuple[np.ndarray, np.ndarray, Grid, Optional[float]]":
+    """(stddev, mean, grid, range_m) refit from PostGIS."""
     engine = make_engine(config.database_url)
     cloud = load_rsrp_points(engine, metric=metric)
     model = OrdinaryKrigingModel(
         variogram_model=config.variogram_model, nlags=config.nlags
     ).fit(cloud)
     surface = model.predict_grid(make_grid(cloud, cell_m=config.cell_metres))
-    return surface.stddev, surface.grid
+    range_m = surface.variogram_params.get("range_m")
+    return surface.stddev, surface.mean, surface.grid, range_m
+
+
+def _range_from_report(report_path: Path) -> Optional[float]:
+    """The fitted variogram range recorded by the last mukoo-krige run."""
+    try:
+        report = json.loads(Path(report_path).read_text())
+        value = report.get("variogram", {}).get("range_m")
+        return float(value) if value else None
+    except (OSError, ValueError):
+        return None
 
 
 def run_suggest(
@@ -78,6 +98,7 @@ def run_suggest(
     candidate_quantile: float = DEFAULT_CANDIDATE_QUANTILE,
     max_road_dist_m: float = DEFAULT_MAX_ROAD_DIST_M,
     min_separation_m: float = DEFAULT_MIN_SEPARATION_M,
+    weak_bias: float = DEFAULT_WEAK_BIAS,
     cache_dir: Optional[Path] = None,
     refresh_roads: bool = False,
     network_type: str = "drive",
@@ -85,14 +106,24 @@ def run_suggest(
     out_dir = Path(config.output_dir)
     if stddev_tif is None:
         stddev_tif = out_dir / f"{metric}_kriging_stddev.tif"
+    mean_tif = Path(stddev_tif).with_name(
+        Path(stddev_tif).name.replace("_stddev", "_mean")
+    )
     cache_dir = Path(cache_dir) if cache_dir else out_dir / "osm_cache"
 
-    # 1. Uncertainty surface: prefer the exported GeoTIFF, else recompute.
+    # 1. Surfaces: prefer the exported GeoTIFFs (+ the report's variogram
+    #    range for EVR scoring), else refit from PostGIS.
+    mean: Optional[np.ndarray] = None
     if not recompute and Path(stddev_tif).exists():
         stddev, grid = load_grid_surface(stddev_tif)
+        if mean_tif.exists():
+            mean, _ = load_grid_surface(mean_tif)
+        range_m = _range_from_report(
+            out_dir / f"{metric}_kriging_report.json"
+        )
         source = f"geotiff:{stddev_tif}"
     else:
-        stddev, grid = _recompute_stddev(config, metric)
+        stddev, mean, grid, range_m = _recompute_surfaces(config, metric)
         source = "recomputed"
 
     # 2. Roads for the surface's footprint (cached OSM fetch).
@@ -105,7 +136,8 @@ def run_suggest(
         refresh=refresh_roads,
     )
 
-    # 3. Rank drivable high-uncertainty locations.
+    # 3. Rank drivable high-uncertainty locations (EVR + weakness weighting
+    #    when the inputs allow), then order them into a drive.
     suggestions = suggest_targets(
         stddev,
         grid,
@@ -114,34 +146,49 @@ def run_suggest(
         candidate_quantile=candidate_quantile,
         max_road_dist_m=max_road_dist_m,
         min_separation_m=min_separation_m,
+        range_m=range_m,
+        mean=mean,
+        weak_bias=weak_bias,
     )
+    suggestions = apply_visit_order(suggestions)
 
-    # 4. Export GeoJSON.
+    # 4. Export GeoJSON + GPX route.
     out_path = write_suggestions_geojson(
         out_dir / f"{metric}_drive_suggestions.geojson", suggestions, metric=metric
     )
+    gpx_path = None
+    if suggestions:
+        gpx_path = write_gpx(
+            out_dir / f"{metric}_drive_route.gpx", suggestions, metric=metric
+        )
     return SuggestResult(
         suggestions=suggestions,
         output_path=out_path,
+        gpx_path=gpx_path,
         n_roads=len(roads),
         stddev_source=source,
+        range_m=range_m,
     )
 
 
 def format_suggestions(suggestions: list, metric: str = "rsrp") -> str:
-    """Render a ranked table of suggestions for the terminal."""
+    """Render a ranked table of suggestions for the terminal.
+
+    ``#`` is information rank, ``drv`` the suggested driving order (2-opt).
+    """
     unit = "dBm" if metric in {"rsrp", "rsrq"} else "units"
     if not suggestions:
         return "No drivable high-uncertainty targets found."
     header = (
-        f"{'#':>2}  {'lat':>10}  {'lon':>11}  {'sigma/' + unit:>9}  "
-        f"{'road_m':>6}  road"
+        f"{'#':>2}  {'drv':>3}  {'lat':>10}  {'lon':>11}  {'sigma/' + unit:>9}  "
+        f"{'score':>8}  {'road_m':>6}  road"
     )
     lines = [header, "-" * len(header)]
     for s in suggestions:
         name = s.road_name if s.road_name else "(unnamed road)"
+        drv = f"{s.visit_order}" if s.visit_order else "-"
         lines.append(
-            f"{s.rank:>2}  {s.lat:>10.5f}  {s.lon:>11.5f}  "
-            f"{s.stddev:>9.2f}  {s.road_dist_m:>6.0f}  {name}"
+            f"{s.rank:>2}  {drv:>3}  {s.lat:>10.5f}  {s.lon:>11.5f}  "
+            f"{s.stddev:>9.2f}  {s.score:>8.1f}  {s.road_dist_m:>6.0f}  {name}"
         )
     return "\n".join(lines)

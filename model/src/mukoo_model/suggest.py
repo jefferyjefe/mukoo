@@ -44,6 +44,8 @@ class Suggestion:
     stddev: float  # kriging 1-sigma uncertainty at the on-road point
     road_name: Optional[str]
     road_dist_m: float  # how far the high-uncertainty cell was from the road
+    score: float = 0.0  # selection score (EVR mass when range known, else sigma)
+    visit_order: Optional[int] = None  # 1-based position in the suggested route
 
 
 # Defaults are deliberately conservative; the CLI exposes all of them.
@@ -51,6 +53,51 @@ DEFAULT_TOP_N = 10
 DEFAULT_CANDIDATE_QUANTILE = 0.70
 DEFAULT_MAX_ROAD_DIST_M = 250.0
 DEFAULT_MIN_SEPARATION_M = 1200.0
+# How strongly predicted-weak coverage boosts a target's score (0 = off).
+# 1.0 doubles the score where prediction saturates "weak" vs. "strong".
+DEFAULT_WEAK_BIAS = 0.5
+
+
+def expected_reduction_scores(
+    stddev: np.ndarray,
+    grid: Grid,
+    cand_x: np.ndarray,
+    cand_y: np.ndarray,
+    *,
+    range_m: float,
+) -> np.ndarray:
+    """Score candidates by the uncertainty *mass* a measurement would inform.
+
+    A cheap proxy for expected variance reduction: a new reading at ``s``
+    informs every cell within the variogram's correlation range, in proportion
+    to the covariance decay. So score(s) = Σ_cells C(d)·σ²_cell, with
+    C(d) = exp(−3d/range) (the exponential model's effective-range decay).
+    Driving where uncertainty is high *and* surrounded by more uncertain area
+    beats an equally-uncertain but isolated cell — which raw σ ranking misses.
+    """
+    xx, yy = np.meshgrid(grid.x, grid.y)
+    cx = xx.ravel()
+    cy = yy.ravel()
+    var = np.nan_to_num(stddev.ravel() ** 2, nan=0.0)
+    # (n_cand, n_cells) distances; ~600×6.4k doubles ≈ 30 MB — fine in one shot.
+    d = np.sqrt(
+        (np.asarray(cand_x)[:, None] - cx[None, :]) ** 2
+        + (np.asarray(cand_y)[:, None] - cy[None, :]) ** 2
+    )
+    decay = np.exp(-3.0 * d / float(range_m))
+    decay[d > range_m] = 0.0  # beyond the range a reading tells you ~nothing
+    return decay @ var
+
+
+def weakness_weight(pred_dbm: np.ndarray, *, weak_bias: float) -> np.ndarray:
+    """Weight ∈ [1, 1+weak_bias] that upweights predicted-weak coverage.
+
+    Ramps linearly from 1.0 at −95 dBm (comfortably strong) to 1+weak_bias at
+    −120 dBm (unusable): verifying uncertainty where coverage is probably bad
+    matters more than where it is probably fine.
+    """
+    w = np.clip((-95.0 - np.asarray(pred_dbm, dtype=np.float64)) / 25.0, 0.0, 1.0)
+    return 1.0 + weak_bias * w
 
 
 def _sample_nearest(stddev: np.ndarray, grid: Grid, x: float, y: float) -> float:
@@ -71,13 +118,26 @@ def suggest_targets(
     candidate_quantile: float = DEFAULT_CANDIDATE_QUANTILE,
     max_road_dist_m: float = DEFAULT_MAX_ROAD_DIST_M,
     min_separation_m: float = DEFAULT_MIN_SEPARATION_M,
+    range_m: Optional[float] = None,
+    mean: Optional[np.ndarray] = None,
+    weak_bias: float = 0.0,
 ) -> list[Suggestion]:
     """Rank drivable high-uncertainty locations; return the top ``top_n``.
 
     ``stddev`` is the south-up kriging standard-deviation grid (row 0 = south),
-    aligned to ``grid``. ``roads`` must be in the same CRS as ``grid``. Returns
-    fewer than ``top_n`` if the separation constraint or a sparse road network
-    leaves too few reachable, well-spread targets.
+    aligned to ``grid``. ``roads`` must be in the same CRS as ``grid``.
+
+    Scoring: with ``range_m`` (the fitted variogram range) each reachable
+    candidate is scored by :func:`expected_reduction_scores` — the σ² mass its
+    measurement would inform — instead of raw point σ; without it, raw σ is the
+    score (back-compatible). With ``mean`` and ``weak_bias`` > 0 the score is
+    multiplied by :func:`weakness_weight`, favouring probably-bad coverage.
+
+    Selection is greedy and overlap-aware: after each pick, remaining
+    candidates lose the score share already covered by the picked point
+    (1 − C(d)), so the list spreads to *informationally* distinct spots; the
+    hard ``min_separation_m`` floor still applies. Returns fewer than
+    ``top_n`` if reachable, well-spread targets run out.
     """
     if roads.is_empty:
         return []
@@ -99,9 +159,9 @@ def suggest_targets(
     threshold = float(np.quantile(flat_s[finite], candidate_quantile))
     candidate_idx = np.where(finite & (flat_s >= threshold))[0]
 
-    # Snap every candidate cell onto the nearest road; keep the reachable ones,
-    # scoring each by the uncertainty at its on-road point.
-    scored = []
+    # Snap every candidate cell onto the nearest road; keep the reachable ones.
+    sigmas: list = []
+    nears: list = []
     for k in candidate_idx:
         near = roads.nearest(float(flat_x[k]), float(flat_y[k]))
         if near.distance_m > max_road_dist_m:
@@ -109,30 +169,59 @@ def suggest_targets(
         on_road_sigma = _sample_nearest(stddev, grid, near.point_x, near.point_y)
         if not np.isfinite(on_road_sigma):
             on_road_sigma = float(flat_s[k])
-        scored.append((on_road_sigma, near))
-
-    if not scored:
+        sigmas.append(on_road_sigma)
+        nears.append(near)
+    if not nears:
         return []
-    scored.sort(key=lambda t: t[0], reverse=True)
 
-    # Greedy: take the most uncertain first, suppress anything within the
-    # separation radius, so suggestions spread across the map.
+    cand_x = np.array([nr.point_x for nr in nears])
+    cand_y = np.array([nr.point_y for nr in nears])
+    sigma_arr = np.array(sigmas)
+
+    # Base score: EVR mass when the variogram range is known, else raw sigma.
+    if range_m is not None and range_m > 0:
+        scores = expected_reduction_scores(
+            stddev, grid, cand_x, cand_y, range_m=range_m
+        )
+    else:
+        scores = sigma_arr.copy()
+    if mean is not None and weak_bias > 0.0:
+        pred = np.array(
+            [_sample_nearest(mean, grid, px, py) for px, py in zip(cand_x, cand_y)]
+        )
+        pred = np.where(np.isfinite(pred), pred, -95.0)  # unknown -> neutral
+        scores = scores * weakness_weight(pred, weak_bias=weak_bias)
+
+    # Greedy pick with overlap discount + hard separation floor.
     min_sep_sq = min_separation_m**2
+    remaining = scores.astype(np.float64).copy()
     chosen: list = []
-    for sigma, near in scored:
-        if any(
-            (near.point_x - c.point_x) ** 2 + (near.point_y - c.point_y) ** 2
-            < min_sep_sq
-            for _, c in chosen
-        ):
-            continue
-        chosen.append((sigma, near))
-        if len(chosen) >= top_n:
+    for _ in range(min(top_n, remaining.shape[0])):
+        order = np.argsort(remaining)[::-1]
+        pick = -1
+        for j in order:
+            if remaining[j] <= 0:
+                break
+            if all(
+                (cand_x[j] - cand_x[c]) ** 2 + (cand_y[j] - cand_y[c]) ** 2
+                >= min_sep_sq
+                for c in (i for i, *_ in chosen)
+            ):
+                pick = int(j)
+                break
+        if pick < 0:
             break
+        chosen.append((pick, float(scores[pick]), float(remaining[pick])))
+        if range_m is not None and range_m > 0:
+            # what the pick now covers is no longer novel for the others.
+            d = np.sqrt((cand_x - cand_x[pick]) ** 2 + (cand_y - cand_y[pick]) ** 2)
+            remaining *= 1.0 - np.exp(-3.0 * d / float(range_m))
+        remaining[pick] = -np.inf
 
     to_lonlat = Transformer.from_crs(grid.crs_epsg, WGS84_EPSG, always_xy=True)
     suggestions = []
-    for rank, (sigma, near) in enumerate(chosen, start=1):
+    for rank, (idx, score, _) in enumerate(chosen, start=1):
+        near = nears[idx]
         lon, lat = to_lonlat.transform(near.point_x, near.point_y)
         suggestions.append(
             Suggestion(
@@ -141,9 +230,10 @@ def suggest_targets(
                 lat=float(lat),
                 x=near.point_x,
                 y=near.point_y,
-                stddev=float(sigma),
+                stddev=float(sigma_arr[idx]),
                 road_name=near.name,
                 road_dist_m=near.distance_m,
+                score=score,
             )
         )
     return suggestions
@@ -161,6 +251,8 @@ def suggestions_to_geojson(suggestions: list, *, metric: str = "rsrp") -> dict:
                 "metric": metric,
                 "stddev": round(s.stddev, 3),
                 "stddev_unit": unit,
+                "score": round(s.score, 3),
+                "visit_order": s.visit_order,
                 "road_name": s.road_name,
                 "road_distance_m": round(s.road_dist_m, 1),
             },

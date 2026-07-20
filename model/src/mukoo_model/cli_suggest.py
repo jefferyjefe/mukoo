@@ -17,6 +17,7 @@ from .suggest import (
     DEFAULT_MAX_ROAD_DIST_M,
     DEFAULT_MIN_SEPARATION_M,
     DEFAULT_TOP_N,
+    DEFAULT_WEAK_BIAS,
 )
 from .suggest_pipeline import format_suggestions, run_suggest
 
@@ -67,6 +68,12 @@ def main(argv: list[str] | None = None) -> int:
         default=DEFAULT_MIN_SEPARATION_M,
         help="minimum spacing between suggestions (spreads them out)",
     )
+    parser.add_argument(
+        "--weak-bias",
+        type=float,
+        default=DEFAULT_WEAK_BIAS,
+        help="how strongly predicted-weak coverage boosts a target (0 = off)",
+    )
     parser.add_argument("--cache-dir", default=None, help="OSM road cache dir")
     parser.add_argument(
         "--refresh-roads", action="store_true", help="force re-fetch of OSM roads"
@@ -89,6 +96,7 @@ def main(argv: list[str] | None = None) -> int:
             candidate_quantile=args.candidate_quantile,
             max_road_dist_m=args.max_road_dist_m,
             min_separation_m=args.min_separation_m,
+            weak_bias=args.weak_bias,
             cache_dir=Path(args.cache_dir) if args.cache_dir else None,
             refresh_roads=args.refresh_roads,
             network_type=args.network_type,
@@ -99,10 +107,18 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"Uncertainty surface: {result.stddev_source}")
     print(f"Road network: {result.n_roads} OSM edges")
+    scoring = (
+        f"EVR (range {result.range_m:.0f} m), weak-bias {args.weak_bias:g}"
+        if result.range_m
+        else "raw sigma (no variogram range available)"
+    )
+    print(f"Scoring: {scoring}")
     print()
     print(format_suggestions(result.suggestions, metric=args.metric))
     print()
     print(f"Wrote {len(result.suggestions)} suggestions -> {result.output_path}")
+    if result.gpx_path:
+        print(f"Wrote GPX route -> {result.gpx_path}")
     return 0
 
 
