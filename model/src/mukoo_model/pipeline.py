@@ -153,7 +153,12 @@ def run(
         anisotropy_angle = config.anisotropy[1]
 
     engine = make_engine(config.database_url)
-    cloud = load_rsrp_points(engine, metric=metric, where=where)
+    cloud = load_rsrp_points(
+        engine,
+        metric=metric,
+        where=where,
+        none_floor=config.none_floor if metric == "rsrp" else None,
+    )
     factory = make_model_factory(
         config,
         cloud,

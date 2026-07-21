@@ -49,6 +49,14 @@ DEFAULT_CV_BLOCK_M = 2000.0
 DEFAULT_KRIGING_MODE = "ordinary"
 KRIGING_MODES = ("ordinary", "pathloss")
 
+# Optional RSRP floor (dBm) at which network_type='none' dead-zone rows join
+# the interpolation. None (default) keeps dead zones out of the model, matching
+# historical behaviour. Settable via MUKOO_NONE_FLOOR (e.g. -127): a dead zone
+# then counts as "at most this weak" instead of being invisible — the phone
+# couldn't hear the cell at all, so the true value is at or below any floor a
+# phone can report.
+DEFAULT_NONE_FLOOR: "float | None" = None
+
 # Variogram anisotropy (scaling, angle-deg CCW from east) for ordinary kriging.
 # (1.0, 0.0) = isotropic. Settable via MUKOO_ANISOTROPY as "SCALING:ANGLE"
 # (e.g. "3:150") so a winner found by `mukoo-krige --compare` can be adopted by
@@ -78,6 +86,7 @@ class Config:
     cv_seed: int = DEFAULT_CV_SEED
     cv_block_m: float = DEFAULT_CV_BLOCK_M
     kriging_mode: str = DEFAULT_KRIGING_MODE
+    none_floor: "float | None" = DEFAULT_NONE_FLOOR
     anisotropy: "tuple[float, float]" = DEFAULT_ANISOTROPY
 
     @classmethod
@@ -88,10 +97,12 @@ class Config:
             raise ValueError(
                 f"MUKOO_KRIGING must be one of {KRIGING_MODES}, got {mode!r}"
             )
+        floor_raw = os.environ.get("MUKOO_NONE_FLOOR")
         aniso_raw = os.environ.get("MUKOO_ANISOTROPY")
         return cls(
             database_url=os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL),
             output_dir=Path(out) if out else DEFAULT_OUTPUT_DIR,
             kriging_mode=mode,
+            none_floor=float(floor_raw) if floor_raw else DEFAULT_NONE_FLOOR,
             anisotropy=parse_anisotropy(aniso_raw) if aniso_raw else DEFAULT_ANISOTROPY,
         )

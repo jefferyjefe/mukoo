@@ -128,6 +128,7 @@ def load_rsrp_points(
     *,
     metric: str = "rsrp",
     where: str | None = None,
+    none_floor: float | None = None,
 ) -> PointCloud:
     """Load non-null ``metric`` measurements from PostGIS into a PointCloud.
 
@@ -136,16 +137,29 @@ def load_rsrp_points(
     validated against that allowlist rather than interpolated blindly. ``where``
     is an optional extra SQL predicate (e.g. a carrier or time filter), ANDed in.
     Rows are ordered by ``id`` so a run is reproducible.
+
+    ``none_floor`` (RSRP only) additionally loads dead-zone rows —
+    ``network_type = 'none'``, where the metric is null because there was
+    nothing to measure — at that floor value (dBm). A dead zone is a *censored*
+    reading ("at or below anything a phone can report"), so a floor slightly
+    under the device's weakest real report keeps no-coverage areas from being
+    interpolated as ordinary gaps between healthy readings.
     """
     allowed = {"rsrp", "rsrq", "sinr"}
     if metric not in allowed:
         raise ValueError(f"metric must be one of {sorted(allowed)}, got {metric!r}")
+    if none_floor is not None and metric != "rsrp":
+        raise ValueError("none_floor only applies to metric='rsrp'")
 
     predicate = f"{metric} IS NOT NULL"
+    value_expr = metric
+    if none_floor is not None:
+        predicate = f"({metric} IS NOT NULL OR network_type = 'none')"
+        value_expr = f"coalesce({metric}, {float(none_floor)})"
     if where:
         predicate = f"({predicate}) AND ({where})"
     sql = text(
-        f"SELECT ST_X(geom) AS lon, ST_Y(geom) AS lat, {metric} AS value, "
+        f"SELECT ST_X(geom) AS lon, ST_Y(geom) AS lat, {value_expr} AS value, "
         f"session_id::text AS session, coalesce(cell_id, '') AS cell "
         f"FROM measurements WHERE {predicate} ORDER BY id"
     )

@@ -27,6 +27,8 @@ def _build_config(args: argparse.Namespace) -> Config:
         config = replace(config, kriging_mode=args.kriging)
     if args.anisotropy:
         config = replace(config, anisotropy=args.anisotropy)
+    if args.none_floor is not None:
+        config = replace(config, none_floor=args.none_floor)
     return replace(
         config,
         cell_metres=args.cell_m,
@@ -97,6 +99,14 @@ def main(argv: list[str] | None = None) -> int:
         metavar="SCALING:ANGLE",
         help="anisotropic variogram, e.g. 2:60 (ordinary kriging only; "
         "default: MUKOO_ANISOTROPY env, else isotropic)",
+    )
+    parser.add_argument(
+        "--none-floor",
+        type=float,
+        default=None,
+        metavar="DBM",
+        help="also load network_type='none' dead-zone rows at this RSRP floor "
+        "(e.g. -127; default: MUKOO_NONE_FLOOR env, else excluded)",
     )
     parser.add_argument(
         "--compare",

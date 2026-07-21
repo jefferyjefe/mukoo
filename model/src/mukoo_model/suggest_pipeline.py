@@ -77,7 +77,11 @@ def _recompute_surfaces(
     from .pipeline import make_model_factory  # local: avoids import cycle risk
 
     engine = make_engine(config.database_url)
-    cloud = load_rsrp_points(engine, metric=metric)
+    cloud = load_rsrp_points(
+        engine,
+        metric=metric,
+        none_floor=config.none_floor if metric == "rsrp" else None,
+    )
     model = make_model_factory(
         config,
         cloud,
