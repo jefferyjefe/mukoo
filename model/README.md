@@ -28,8 +28,9 @@ Models: `--kriging ordinary` (default) or `--kriging pathloss` — regression
 kriging with a log-distance path-loss trend whose "towers" are bootstrapped
 from each cell_id's power-weighted sample centroid. `--anisotropy SCALING:ANGLE`
 stretches the variogram (signal along a road can decorrelate differently from
-across it). `--compare` CVs ordinary vs. pathloss vs. an anisotropy scan and
-prints a table instead of writing surfaces.
+across it). `--compare` CVs the variogram families (exponential / spherical /
+gaussian) vs. pathloss vs. an anisotropy scan and prints a table instead of
+writing surfaces.
 
 ```bash
 pip install -e model          # numpy/scipy/pykrige/pyproj/rasterio/shapely/osmnx
@@ -39,7 +40,34 @@ mukoo-krige --compare         # model shoot-out, judged by session CV
 ```
 
 Other flags: `--variogram-model`, `--cell-m` (150), `--folds`, `--block-m`
-(2000), `--out-dir`, `--metric {rsrp,rsrq,sinr}`, `--where`.
+(2000), `--out-dir`, `--metric {rsrp,rsrq,sinr}`, `--where`, `--none-floor`.
+
+**Adopting a `--compare` winner.** The choice persists via environment
+variables, which every entry point (including the auto-refresh agent and
+`mukoo-suggest --recompute`) honours — CLI flags override per run:
+
+| Env var | Meaning | Example |
+|---------|---------|---------|
+| `MUKOO_KRIGING` | `ordinary` (default) or `pathloss` | `pathloss` |
+| `MUKOO_ANISOTROPY` | variogram anisotropy `SCALING:ANGLE` | `3:150` |
+| `MUKOO_NONE_FLOOR` | include `network_type='none'` dead-zone rows at this RSRP (dBm); unset = excluded | `-127` |
+
+## FCC claims check
+
+`mukoo-claims` compares every measurement against the carrier's FCC-filed
+coverage claim (a BDC mobile H3 GeoPackage, read directly — no GDAL needed) and
+reports where ground truth contradicts the filing: points inside a claimed hex
+whose measured RSRP is below the hex's filed `minsignal`.
+
+```bash
+mukoo-claims --gpkg ~/Downloads/bdc_13_131425_4GLTE_mobile_broadband_h3_*.gpkg
+# -> ~/mukoo/claims_report.json (summary, per-claim-tier breakdown, worst point)
+# -> ~/mukoo/claims_violations.geojson (every violating measurement, worst first)
+```
+
+`--environment 1` (default) keeps the in-vehicle claim — the like-for-like
+comparison for drive data; `0` selects the outdoor-stationary claim. `--where`
+narrows the measurements (e.g. one session), `--prefix` names the outputs.
 
 ## Drive suggestions (active learning)
 
@@ -91,7 +119,8 @@ make autorefresh-remove
 | `towers.py`   | Bootstrap tower positions from per-cell power-weighted centroids |
 | `regression.py` | `PathLossKrigingModel` — log-distance trend + residual kriging |
 | `crossval.py` | Random / session / block CV → accuracy + calibration metrics |
-| `compare.py`  | Model shoot-out + anisotropy scan, judged by CV |
+| `compare.py`  | Model shoot-out (variogram families, pathloss, anisotropy scan), judged by CV |
+| `claims.py`   | FCC BDC filing vs measurements: GPKG reader, spatial join, violation report |
 | `export.py`   | GeoTIFF writing + JSON report assembly |
 | `raster.py`   | Load a GeoTIFF surface back into `(array, Grid)` |
 | `roads.py`    | `RoadNetwork` (Shapely) + `fetch_roads` (OSM, cached) |
@@ -99,7 +128,7 @@ make autorefresh-remove
 | `route.py`    | NN + 2-opt visit order, GPX export |
 | `refresh.py`  | Change-detecting auto-refresh (`mukoo-refresh`) |
 | `pipeline.py` / `suggest_pipeline.py` | Orchestration |
-| `cli.py` / `cli_suggest.py` | `mukoo-krige` / `mukoo-suggest` entry points |
+| `cli.py` / `cli_suggest.py` / `cli_claims.py` | `mukoo-krige` / `mukoo-suggest` / `mukoo-claims` entry points |
 
 ## Reading the numbers (current data)
 

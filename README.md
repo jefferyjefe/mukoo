@@ -9,7 +9,7 @@ into PostGIS and models coverage across the region.
 | Path        | What it is |
 |-------------|------------|
 | [`ingest/`](ingest/) | Flask ingestion API — batch, idempotent measurement intake. Installable package `mukoo-ingest`. |
-| [`model/`](model/)   | Coverage model. Separate installable package `mukoo-model`: ordinary kriging of RSRP (cross-validation + GeoTIFF export, `mukoo-krige`) and active-learning drive suggestions from the uncertainty surface (`mukoo-suggest`). |
+| [`model/`](model/)   | Coverage model. Separate installable package `mukoo-model`: kriging of RSRP (cross-validation + GeoTIFF export, `mukoo-krige`), active-learning drive suggestions from the uncertainty surface (`mukoo-suggest`), and FCC claimed-coverage verification against BDC filings (`mukoo-claims`). |
 | [`db/`](db/)         | Alembic migrations and schema — the source of truth for the database. |
 | [`logger/`](logger/) | Android field-logger app. Placeholder. |
 | [`infra/`](infra/)   | Docker Compose stack and configuration. |

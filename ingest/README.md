@@ -65,6 +65,17 @@ duplicates are skipped, via `INSERT … ON CONFLICT (sample_id) DO NOTHING`.
 Invalid payloads (bad UUID, unknown `network_type`, out-of-range coordinate,
 empty `samples`) return `400` with details.
 
+### `GET /v1/stats`
+
+The ingested dataset at a glance (read-only): totals, distinct sessions,
+dead-zone count, RSRP min/max/avg, bounding box, `last_received_at`, and a
+chronological `per_session` breakdown (samples, time window, dead zones, RSRP
+stats per drive). Empty table returns zeros/nulls, still `200`.
+
+```bash
+curl -s localhost:8000/v1/stats | jq .
+```
+
 ### `GET /healthz`
 
 Returns `200` when the database is reachable, `503` otherwise.

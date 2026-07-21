@@ -19,6 +19,8 @@ help:
 	@echo "test       run the ingest + model test suites"
 	@echo "test-model run the model test suite only"
 	@echo "krige      run kriging of RSRP -> surfaces in ~/mukoo"
+	@echo "compare    CV-compare candidate models (families, pathloss, anisotropy)"
+	@echo "claims     compare measurements vs an FCC BDC filing: make claims GPKG=path.gpkg"
 	@echo "suggest    suggest next drive targets (needs the kriging surface) -> ~/mukoo"
 	@echo "refresh    re-run krige+suggest if new measurements exist (mukoo-refresh)"
 	@echo "autorefresh-install  install + start the 15-min launchd refresh agent"
@@ -46,6 +48,13 @@ test-model:
 
 krige:
 	mukoo-krige --metric rsrp
+
+compare:
+	mukoo-krige --compare
+
+claims:
+	@test -n "$(GPKG)" || (echo "usage: make claims GPKG=/path/to/bdc_filing.gpkg" && exit 1)
+	mukoo-claims --gpkg "$(GPKG)"
 
 suggest:
 	mukoo-suggest --metric rsrp
