@@ -37,6 +37,10 @@ infra/.env
 # Active-learning route suggestions + cached OSM road network (mukoo-suggest)
 *_drive_suggestions.geojson
 *_drive_route.gpx
+
+# FCC claims comparison outputs (mukoo-claims writes these to ~/mukoo)
+*claims_report.json
+*claims_violations.geojson
 osm_cache/
 # osmnx's own Overpass HTTP response cache
 cache/

@@ -22,6 +22,13 @@ or the CLI::
     mukoo-krige --metric rsrp
 """
 
+from .claims import (
+    ClaimedHexes,
+    ClaimsResult,
+    evaluate_claims,
+    read_claimed_hexes,
+    write_claims_outputs,
+)
 from .config import Config
 from .crossval import CVResult, block_cv, kfold_cv, session_cv
 from .data import PointCloud, load_rsrp_points, utm_epsg_for
@@ -45,6 +52,11 @@ from .suggest_pipeline import SuggestResult, run_suggest
 __version__ = "0.1.0"
 
 __all__ = [
+    "ClaimedHexes",
+    "ClaimsResult",
+    "evaluate_claims",
+    "read_claimed_hexes",
+    "write_claims_outputs",
     "Config",
     "CVResult",
     "kfold_cv",

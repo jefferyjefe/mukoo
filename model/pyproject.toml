@@ -34,6 +34,7 @@ dev = [
 mukoo-krige = "mukoo_model.cli:main"
 mukoo-suggest = "mukoo_model.cli_suggest:main"
 mukoo-refresh = "mukoo_model.refresh:main"
+mukoo-claims = "mukoo_model.cli_claims:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
