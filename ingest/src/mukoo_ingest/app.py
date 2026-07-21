@@ -79,6 +79,93 @@ def create_app(config: Optional[Config] = None) -> Flask:
         result = ingest_batch(engine, batch)
         return jsonify(result.as_dict()), 200
 
+    @app.get("/v1/stats")
+    def get_stats():
+        """Summary of everything ingested: the dataset at a glance.
+
+        One round-trip of aggregate SQL — totals, dead zones, RSRP spread,
+        bounding box, and a per-session breakdown (chronological). Read-only
+        and cheap (~2k rows today; the per-session GROUP BY rides the
+        session_id index), so the field logger or a curl can poll it freely.
+        """
+        totals_sql = text(
+            """
+            SELECT count(*) AS total,
+                   count(DISTINCT session_id) AS sessions,
+                   count(*) FILTER (WHERE network_type = 'none') AS dead_zones,
+                   min(rsrp) AS rsrp_min,
+                   max(rsrp) AS rsrp_max,
+                   round(avg(rsrp), 2) AS rsrp_avg,
+                   min(ST_Y(geom)) AS lat_min, max(ST_Y(geom)) AS lat_max,
+                   min(ST_X(geom)) AS lon_min, max(ST_X(geom)) AS lon_max,
+                   max(received_at) AS last_received_at
+            FROM measurements
+            """
+        )
+        sessions_sql = text(
+            """
+            SELECT session_id::text AS session_id,
+                   count(*) AS samples,
+                   min(recorded_at) AS started_at,
+                   max(recorded_at) AS ended_at,
+                   count(*) FILTER (WHERE network_type = 'none') AS dead_zones,
+                   min(rsrp) AS rsrp_min,
+                   max(rsrp) AS rsrp_max,
+                   round(avg(rsrp), 2) AS rsrp_avg
+            FROM measurements
+            GROUP BY session_id
+            ORDER BY min(recorded_at)
+            """
+        )
+        try:
+            with engine.connect() as conn:
+                t = conn.execute(totals_sql).one()
+                sessions = conn.execute(sessions_sql).all()
+        except Exception:  # pragma: no cover - exercised via ops
+            return jsonify(error="db_unavailable"), 503
+
+        def _num(v):
+            return float(v) if v is not None else None
+
+        return jsonify(
+            total=t.total,
+            sessions=t.sessions,
+            dead_zones=t.dead_zones,
+            rsrp={
+                "min": _num(t.rsrp_min),
+                "max": _num(t.rsrp_max),
+                "avg": _num(t.rsrp_avg),
+            },
+            bbox=(
+                {
+                    "lat_min": _num(t.lat_min),
+                    "lat_max": _num(t.lat_max),
+                    "lon_min": _num(t.lon_min),
+                    "lon_max": _num(t.lon_max),
+                }
+                if t.total
+                else None
+            ),
+            last_received_at=(
+                t.last_received_at.isoformat() if t.last_received_at else None
+            ),
+            per_session=[
+                {
+                    "session_id": s.session_id,
+                    "samples": s.samples,
+                    "started_at": s.started_at.isoformat(),
+                    "ended_at": s.ended_at.isoformat(),
+                    "dead_zones": s.dead_zones,
+                    "rsrp": {
+                        "min": _num(s.rsrp_min),
+                        "max": _num(s.rsrp_max),
+                        "avg": _num(s.rsrp_avg),
+                    },
+                }
+                for s in sessions
+            ],
+        )
+
     @app.get("/v1/suggestions")
     def get_suggestions():
         """Serve the active-learning drive suggestions as GeoJSON.
