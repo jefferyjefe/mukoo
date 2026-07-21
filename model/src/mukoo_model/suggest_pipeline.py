@@ -21,7 +21,7 @@ import json
 from .config import Config
 from .data import WGS84_EPSG, load_rsrp_points
 from .db import make_engine
-from .kriging import Grid, OrdinaryKrigingModel, make_grid
+from .kriging import Grid, make_grid
 from .raster import load_grid_surface
 from .roads import fetch_roads
 from .route import apply_visit_order, write_gpx
@@ -67,12 +67,25 @@ def bounds_lonlat_of_grid(grid: Grid) -> tuple:
 def _recompute_surfaces(
     config: Config, metric: str
 ) -> "tuple[np.ndarray, np.ndarray, Grid, Optional[float]]":
-    """(stddev, mean, grid, range_m) refit from PostGIS."""
+    """(stddev, mean, grid, range_m) refit from PostGIS.
+
+    Uses the same model the main pipeline would (config's kriging mode,
+    anisotropy, and dead-zone floor), so recomputed suggestions match what
+    ``mukoo-krige`` exports rather than silently reverting to plain ordinary
+    kriging.
+    """
+    from .pipeline import make_model_factory  # local: avoids import cycle risk
+
     engine = make_engine(config.database_url)
     cloud = load_rsrp_points(engine, metric=metric)
-    model = OrdinaryKrigingModel(
-        variogram_model=config.variogram_model, nlags=config.nlags
-    ).fit(cloud)
+    model = make_model_factory(
+        config,
+        cloud,
+        kriging=config.kriging_mode,
+        anisotropy_scaling=config.anisotropy[0],
+        anisotropy_angle=config.anisotropy[1],
+    )()
+    model.fit(cloud)
     surface = model.predict_grid(make_grid(cloud, cell_m=config.cell_metres))
     range_m = surface.variogram_params.get("range_m")
     return surface.stddev, surface.mean, surface.grid, range_m

@@ -59,6 +59,11 @@ def make_model_factory(
     their subset rows back to labels without leakage.
     """
     if kriging == "pathloss":
+        if anisotropy_scaling != 1.0 or anisotropy_angle != 0.0:
+            raise ValueError(
+                "anisotropy is only supported with ordinary kriging; "
+                "unset MUKOO_ANISOTROPY / --anisotropy or use kriging='ordinary'"
+            )
 
         def factory() -> PathLossKrigingModel:
             model = PathLossKrigingModel(
@@ -93,21 +98,28 @@ def run_cvs(
     on_cv: Optional[Callable[[CVResult], None]] = None,
 ) -> "list[CVResult]":
     """Session, block, and random CV (in that order), skipping session CV
-    gracefully when the cloud has fewer than two sessions."""
+    gracefully when the cloud has fewer than two sessions.
+
+    ``on_cv`` fires as each scheme finishes — the honest session numbers reach
+    the terminal while the remaining schemes are still computing.
+    """
     cvs: "list[CVResult]" = []
+
+    def _add(cv: CVResult) -> None:
+        cvs.append(cv)
+        if on_cv is not None:
+            on_cv(cv)
+
     try:
-        cvs.append(session_cv(cloud, model_factory=factory))
+        _add(session_cv(cloud, model_factory=factory))
     except ValueError:
         pass  # single session / no labels: the other two schemes still run
-    cvs.append(
+    _add(
         block_cv(
             cloud, model_factory=factory, block_m=block_m, n_folds=n_folds, seed=seed
         )
     )
-    cvs.append(kfold_cv(cloud, model_factory=factory, n_folds=n_folds, seed=seed))
-    if on_cv is not None:
-        for cv in cvs:
-            on_cv(cv)
+    _add(kfold_cv(cloud, model_factory=factory, n_folds=n_folds, seed=seed))
     return cvs
 
 
@@ -117,17 +129,29 @@ def run(
     metric: str = "rsrp",
     where: Optional[str] = None,
     prefix: str = "rsrp_kriging",
-    kriging: str = "ordinary",
-    anisotropy_scaling: float = 1.0,
-    anisotropy_angle: float = 0.0,
+    kriging: Optional[str] = None,
+    anisotropy_scaling: Optional[float] = None,
+    anisotropy_angle: Optional[float] = None,
     on_cv: Optional[Callable[[CVResult], None]] = None,
 ) -> PipelineResult:
     """Load points, cross-validate (all schemes), fit, predict, and export.
+
+    ``kriging`` and the anisotropy pair default to the config's values (which
+    themselves come from MUKOO_KRIGING / MUKOO_ANISOTROPY), so the refresh
+    agent and other callers follow the operator's chosen model automatically;
+    pass them explicitly to override for one run.
 
     ``on_cv`` is invoked per CV result as soon as they are computed and before
     the (slower) full-grid prediction — so a caller can print the numbers that
     decide trust before committing to the surface.
     """
+    if kriging is None:
+        kriging = config.kriging_mode
+    if anisotropy_scaling is None:
+        anisotropy_scaling = config.anisotropy[0]
+    if anisotropy_angle is None:
+        anisotropy_angle = config.anisotropy[1]
+
     engine = make_engine(config.database_url)
     cloud = load_rsrp_points(engine, metric=metric, where=where)
     factory = make_model_factory(

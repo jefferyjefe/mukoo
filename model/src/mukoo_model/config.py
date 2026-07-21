@@ -42,6 +42,30 @@ DEFAULT_CV_SEED = 0
 # variogram range, so held-out blocks are genuinely "away" from training data.
 DEFAULT_CV_BLOCK_M = 2000.0
 
+# Which kriging model the pipelines run: "ordinary", or "pathloss" (regression
+# kriging with the log-distance tower prior). Settable via MUKOO_KRIGING so the
+# auto-refresh agent and the suggester pick it up without CLI flags; use
+# `mukoo-krige --compare` to decide which one your data supports.
+DEFAULT_KRIGING_MODE = "ordinary"
+KRIGING_MODES = ("ordinary", "pathloss")
+
+# Variogram anisotropy (scaling, angle-deg CCW from east) for ordinary kriging.
+# (1.0, 0.0) = isotropic. Settable via MUKOO_ANISOTROPY as "SCALING:ANGLE"
+# (e.g. "3:150") so a winner found by `mukoo-krige --compare` can be adopted by
+# the auto-refresh agent and the suggester without CLI flags.
+DEFAULT_ANISOTROPY: "tuple[float, float]" = (1.0, 0.0)
+
+
+def parse_anisotropy(value: str) -> "tuple[float, float]":
+    """Parse "SCALING:ANGLE" (e.g. "3:150") into (scaling, angle_deg)."""
+    try:
+        scaling_s, angle_s = value.split(":", 1)
+        return (float(scaling_s), float(angle_s))
+    except ValueError as exc:
+        raise ValueError(
+            f"anisotropy must look like SCALING:ANGLE (e.g. 3:150), got {value!r}"
+        ) from exc
+
 
 @dataclass(frozen=True)
 class Config:
@@ -53,11 +77,21 @@ class Config:
     cv_folds: int = DEFAULT_CV_FOLDS
     cv_seed: int = DEFAULT_CV_SEED
     cv_block_m: float = DEFAULT_CV_BLOCK_M
+    kriging_mode: str = DEFAULT_KRIGING_MODE
+    anisotropy: "tuple[float, float]" = DEFAULT_ANISOTROPY
 
     @classmethod
     def from_env(cls) -> "Config":
         out = os.environ.get("MUKOO_MODEL_OUTPUT_DIR")
+        mode = os.environ.get("MUKOO_KRIGING", DEFAULT_KRIGING_MODE)
+        if mode not in KRIGING_MODES:
+            raise ValueError(
+                f"MUKOO_KRIGING must be one of {KRIGING_MODES}, got {mode!r}"
+            )
+        aniso_raw = os.environ.get("MUKOO_ANISOTROPY")
         return cls(
             database_url=os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL),
             output_dir=Path(out) if out else DEFAULT_OUTPUT_DIR,
+            kriging_mode=mode,
+            anisotropy=parse_anisotropy(aniso_raw) if aniso_raw else DEFAULT_ANISOTROPY,
         )

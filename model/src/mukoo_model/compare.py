@@ -8,13 +8,17 @@ that only helps along-track densification doesn't win.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Callable, Optional
 
 from .config import Config
 from .crossval import CVResult, kfold_cv, session_cv
 from .data import PointCloud
 from .pipeline import make_model_factory
+
+# Variogram families worth CVing against each other. linear/power are left out:
+# they have no sill, so the kriging variance loses its calibration meaning.
+SCAN_FAMILIES = ("exponential", "spherical", "gaussian")
 
 # A coarse but sufficient grid: angles every 30° (anisotropy is symmetric under
 # 180°), stretch factors up to 3x. Finer search overfits the scan to CV noise.
@@ -81,14 +85,16 @@ def compare_models(
 ) -> "list[tuple[str, CVResult]]":
     """CV each candidate model; returns (label, result) pairs, best RMSE first.
 
-    Candidates: ordinary kriging, path-loss regression kriging (skipped with a
-    clear label if cell data can't support towers), and — when the scan finds a
-    winning pair — anisotropic ordinary kriging.
+    Candidates: ordinary kriging in each variogram family, path-loss regression
+    kriging (skipped with a clear label if cell data can't support towers), and
+    — when the scan finds a winning pair — anisotropic ordinary kriging.
     """
     rows: "list[tuple[str, CVResult]]" = []
 
-    ordinary = make_model_factory(config, cloud, kriging="ordinary")
-    rows.append(("ordinary", _cv_once(cloud, ordinary, folds=folds)))
+    for family in SCAN_FAMILIES:
+        cfg = replace(config, variogram_model=family)
+        factory = make_model_factory(cfg, cloud, kriging="ordinary")
+        rows.append((f"ordinary {family}", _cv_once(cloud, factory, folds=folds)))
 
     try:
         # the ValueError (no towers / no cell labels) surfaces at fit time,

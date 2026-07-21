@@ -88,6 +88,7 @@ def run_refresh(
         {
             **cur,
             "refreshed_at": datetime.now(timezone.utc).isoformat(),
+            "kriging": config.kriging_mode,
             "cv_scheme": headline.scheme,
             "cv_rmse": round(headline.rmse, 3),
         },
@@ -107,11 +108,19 @@ def main(argv: "list[str] | None" = None) -> int:
     parser.add_argument("--metric", default="rsrp", choices=["rsrp", "rsrq", "sinr"])
     parser.add_argument("--force", action="store_true", help="refresh regardless")
     parser.add_argument("--out-dir", default=None, help="output dir (default ~/mukoo)")
+    parser.add_argument(
+        "--kriging",
+        default=None,
+        choices=["ordinary", "pathloss"],
+        help="model to refresh with (default: MUKOO_KRIGING env, else ordinary)",
+    )
     args = parser.parse_args(argv)
 
     config = Config.from_env()
     if args.out_dir:
         config = replace(config, output_dir=Path(args.out_dir))
+    if args.kriging:
+        config = replace(config, kriging_mode=args.kriging)
 
     try:
         message = run_refresh(config, metric=args.metric, force=args.force)

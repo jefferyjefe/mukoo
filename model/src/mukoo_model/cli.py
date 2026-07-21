@@ -12,7 +12,7 @@ import argparse
 import sys
 from dataclasses import replace
 
-from .config import Config
+from .config import Config, parse_anisotropy
 from .crossval import CVResult
 from .pipeline import run
 
@@ -23,6 +23,10 @@ def _build_config(args: argparse.Namespace) -> Config:
         config = replace(config, database_url=args.database_url)
     if args.out_dir:
         config = replace(config, output_dir=args.out_dir)
+    if args.kriging:
+        config = replace(config, kriging_mode=args.kriging)
+    if args.anisotropy:
+        config = replace(config, anisotropy=args.anisotropy)
     return replace(
         config,
         cell_metres=args.cell_m,
@@ -37,8 +41,7 @@ def _build_config(args: argparse.Namespace) -> Config:
 def _parse_anisotropy(value: str) -> "tuple[float, float]":
     """--anisotropy SCALING:ANGLE, e.g. 2:60."""
     try:
-        scaling_s, angle_s = value.split(":", 1)
-        return float(scaling_s), float(angle_s)
+        return parse_anisotropy(value)
     except ValueError as exc:
         raise argparse.ArgumentTypeError(
             "expected SCALING:ANGLE, e.g. 2:60"
@@ -82,16 +85,18 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--kriging",
-        default="ordinary",
+        default=None,
         choices=["ordinary", "pathloss"],
-        help="ordinary kriging, or regression kriging with the path-loss prior",
+        help="ordinary kriging, or regression kriging with the path-loss "
+        "prior (default: MUKOO_KRIGING env, else ordinary)",
     )
     parser.add_argument(
         "--anisotropy",
         type=_parse_anisotropy,
         default=None,
         metavar="SCALING:ANGLE",
-        help="anisotropic variogram, e.g. 2:60 (ordinary kriging only)",
+        help="anisotropic variogram, e.g. 2:60 (ordinary kriging only; "
+        "default: MUKOO_ANISOTROPY env, else isotropic)",
     )
     parser.add_argument(
         "--compare",
@@ -102,7 +107,6 @@ def main(argv: list[str] | None = None) -> int:
 
     config = _build_config(args)
     prefix = f"{args.metric}_kriging"
-    scaling, angle = args.anisotropy if args.anisotropy else (1.0, 0.0)
 
     def report_cv(cv: CVResult) -> None:
         # CV numbers first, to stdout, before the surface is even built.
@@ -112,14 +116,13 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.compare:
             return _compare(config, args)
+        # kriging mode / anisotropy / none-floor all live on the config now
+        # (CLI flags > env > defaults), so run() just reads them from there.
         result = run(
             config,
             metric=args.metric,
             where=args.where,
             prefix=prefix,
-            kriging=args.kriging,
-            anisotropy_scaling=scaling,
-            anisotropy_angle=angle,
             on_cv=report_cv,
         )
     except Exception as exc:  # surface a clean message, not a traceback
