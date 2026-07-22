@@ -102,6 +102,16 @@ the method and a real discrepancy, not a nationwide result.
 | [`logger/`](logger/) | Android field-logger app. |
 | [`infra/`](infra/)   | Docker Compose stack and configuration. |
 
+### Published data & privacy
+
+The evidence is published **aggregated to the carrier's own H3 claimed-coverage
+hexes** — [`verizon_claim_violations_by_hex.geojson`](verizon_claim_violations_by_hex.geojson):
+one feature per hex, carrying how many measurements fell inside it and how many
+came in below the filed minimum. Raw per-measurement GPS traces are deliberately
+kept local (gitignored), so the published data shows *which claimed cells failed,
+and by how much* without mapping individual drives. Regenerate with
+[`docs/aggregate_violations_by_hex.py`](docs/aggregate_violations_by_hex.py).
+
 ### Data model
 
 The first migration creates `measurements`, one row per reading:
@@ -132,8 +142,12 @@ Reproduce the audit against a BDC filing:
 pip install -e model
 export DATABASE_URL=postgresql+psycopg2://mukoo:mukoo@localhost:5432/mukoo
 mukoo-claims --gpkg ~/Downloads/bdc_13_131425_4GLTE_mobile_broadband_h3_*.gpkg
-# -> claims_report.json (summary, per-tier breakdown, worst point)
-# -> claims_violations.geojson (every violating measurement, worst first)
+# -> claims_report.json (summary, per-tier breakdown, worst point)          [local]
+# -> claims_violations.geojson (every violating measurement, worst first)   [local]
+
+# Publishable, privacy-preserving views (hex-aggregated / not coordinate-extractable):
+python docs/aggregate_violations_by_hex.py   # -> verizon_claim_violations_by_hex.geojson
+python docs/make_coverage_map.py             # -> docs/coverage_map.png
 ```
 
 To develop and test the API against a local PostGIS, see
@@ -150,3 +164,7 @@ cd db
 DATABASE_URL=postgresql+psycopg2://mukoo:mukoo@localhost:5432/mukoo alembic upgrade head
 DATABASE_URL=… alembic revision -m "add something"   # new migration
 ```
+
+## License
+
+MIT — see [LICENSE](LICENSE).

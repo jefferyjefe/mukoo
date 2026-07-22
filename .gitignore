@@ -38,9 +38,12 @@ infra/.env
 *_drive_suggestions.geojson
 *_drive_route.gpx
 
-# FCC claims comparison outputs (mukoo-claims writes these to ~/mukoo)
+# FCC claims comparison outputs (mukoo-claims writes these to ~/mukoo).
+# Full-precision, per-measurement violation traces stay LOCAL — only the
+# hex-level aggregate (verizon_claim_violations_by_hex.geojson) is published.
 *claims_report.json
 *claims_violations.geojson
+verizon_claim_violations.geojson
 osm_cache/
 # osmnx's own Overpass HTTP response cache
 cache/
