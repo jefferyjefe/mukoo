@@ -29,6 +29,11 @@ dependencies = [
 dev = [
   "pytest>=7.4",
 ]
+# Render the README coverage-vs-claim map (docs/make_coverage_map.py). geopandas
+# already arrives transitively via osmnx; matplotlib is the only addition.
+viz = [
+  "matplotlib>=3.6",
+]
 
 [project.scripts]
 mukoo-krige = "mukoo_model.cli:main"

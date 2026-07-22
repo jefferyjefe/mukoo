@@ -13,7 +13,7 @@ if data changed, re-run ``mukoo-claims`` first, then this script.
 
 Usage (after ``mukoo-claims`` has produced its report + violations GeoJSON)::
 
-    pip install -e model matplotlib
+    pip install -e 'model[viz]'
     python docs/make_coverage_map.py            # defaults from ~/mukoo
     python docs/make_coverage_map.py --gpkg path/to/bdc_*.gpkg
 
