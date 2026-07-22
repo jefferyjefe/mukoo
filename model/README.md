@@ -132,7 +132,7 @@ make autorefresh-remove
 
 ## Reading the numbers (current data)
 
-With six drives over one corner of the county, session CV shows the surface
+With nine drives over one corner of the county, session CV shows the surface
 does **not** yet generalise to unseen roads (negative R², over-confident σ) —
 the random k-fold RMSE alone would not have revealed that. The fix is coverage,
 not modelling: drive the suggested targets (they chase exactly the areas that
