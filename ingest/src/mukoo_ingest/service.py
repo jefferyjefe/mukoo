@@ -34,6 +34,8 @@ def _row(sample: SampleIn, batch: BatchIn) -> Dict[str, object]:
         "sample_id": sample.sample_id,
         "session_id": sample.session_id or batch.session_id,
         "recorded_at": sample.recorded_at,
+        # None for older clients that do not report it; the column is nullable.
+        "modem_reported_at": sample.modem_reported_at,
         # PostGIS POINT is (x=lon, y=lat).
         "geom": WKTElement(f"POINT({sample.lon} {sample.lat})", srid=SRID),
         "rsrp": sample.rsrp,

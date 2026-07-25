@@ -83,10 +83,16 @@ def create_app(config: Optional[Config] = None) -> Flask:
     def get_stats():
         """Summary of everything ingested: the dataset at a glance.
 
-        One round-trip of aggregate SQL — totals, dead zones, RSRP spread,
+        Two round-trips of aggregate SQL — totals, dead zones, RSRP spread,
         bounding box, and a per-session breakdown (chronological). Read-only
-        and cheap (~2k rows today; the per-session GROUP BY rides the
+        and cheap (~3k rows today; the per-session GROUP BY rides the
         session_id index), so the field logger or a curl can poll it freely.
+
+        Also counts *latched re-reads*: consecutive samples in a session that
+        re-report one modem reading rather than observing something new. Those
+        rows are not independent, so a high share means the effective sample
+        size is well below the row count — worth seeing here without having to
+        run the model.
         """
         totals_sql = text(
             """
@@ -102,8 +108,28 @@ def create_app(config: Optional[Config] = None) -> Flask:
             FROM measurements
             """
         )
+        # A row is a re-read of its predecessor when the modem stamped both with
+        # the same modem_reported_at, or when the whole signal triple is
+        # unchanged. Deliberately the same rule as the model's load-time dedupe
+        # (mukoo_model.data._RUN_START_SUBQUERY) — the two packages stay
+        # decoupled by design, so if that rule changes, change it here too.
+        #
+        # modem_timestamps.rows vs .distinct is the diagnostic for whether the
+        # modem's clock can identify re-reads at all: if they are equal, the
+        # framework restamped every poll and only the value test is meaningful.
         sessions_sql = text(
             """
+            WITH seq AS (
+                SELECT session_id, network_type, rsrp, rsrq, sinr, recorded_at,
+                       modem_reported_at,
+                       lag(session_id)        OVER w AS p_session,
+                       lag(modem_reported_at) OVER w AS p_modem,
+                       lag(rsrp)              OVER w AS p_rsrp,
+                       lag(rsrq)              OVER w AS p_rsrq,
+                       lag(sinr)              OVER w AS p_sinr
+                FROM measurements
+                WINDOW w AS (PARTITION BY session_id ORDER BY recorded_at, id)
+            )
             SELECT session_id::text AS session_id,
                    count(*) AS samples,
                    min(recorded_at) AS started_at,
@@ -111,8 +137,19 @@ def create_app(config: Optional[Config] = None) -> Flask:
                    count(*) FILTER (WHERE network_type = 'none') AS dead_zones,
                    min(rsrp) AS rsrp_min,
                    max(rsrp) AS rsrp_max,
-                   round(avg(rsrp), 2) AS rsrp_avg
-            FROM measurements
+                   round(avg(rsrp), 2) AS rsrp_avg,
+                   count(*) FILTER (
+                       WHERE p_session IS NOT NULL
+                         AND ((modem_reported_at IS NOT NULL
+                               AND p_modem IS NOT NULL
+                               AND modem_reported_at = p_modem)
+                              OR (rsrp IS NOT DISTINCT FROM p_rsrp
+                                  AND rsrq IS NOT DISTINCT FROM p_rsrq
+                                  AND sinr IS NOT DISTINCT FROM p_sinr))
+                   ) AS rereads,
+                   count(modem_reported_at) AS modem_rows,
+                   count(DISTINCT modem_reported_at) AS modem_distinct
+            FROM seq
             GROUP BY session_id
             ORDER BY min(recorded_at)
             """
@@ -127,10 +164,22 @@ def create_app(config: Optional[Config] = None) -> Flask:
         def _num(v):
             return float(v) if v is not None else None
 
+        # Summed from the per-session figures: a re-read is only meaningful
+        # within one drive, so there is nothing to count across the whole table.
+        rereads = sum(s.rereads for s in sessions)
+        modem_rows = sum(s.modem_rows for s in sessions)
+
         return jsonify(
             total=t.total,
             sessions=t.sessions,
             dead_zones=t.dead_zones,
+            rereads={
+                "rows": rereads,
+                "share": round(rereads / t.total, 4) if t.total else None,
+                # What the model actually gets to work with once runs collapse.
+                "independent_rows": t.total - rereads,
+                "with_modem_timestamp": modem_rows,
+            },
             rsrp={
                 "min": _num(t.rsrp_min),
                 "max": _num(t.rsrp_max),
@@ -160,6 +209,13 @@ def create_app(config: Optional[Config] = None) -> Flask:
                         "min": _num(s.rsrp_min),
                         "max": _num(s.rsrp_max),
                         "avg": _num(s.rsrp_avg),
+                    },
+                    "rereads": s.rereads,
+                    # rows == distinct means the modem restamped every poll, so
+                    # its clock cannot identify re-reads on this device.
+                    "modem_timestamps": {
+                        "rows": s.modem_rows,
+                        "distinct": s.modem_distinct,
                     },
                 }
                 for s in sessions

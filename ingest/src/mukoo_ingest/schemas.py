@@ -29,6 +29,12 @@ class SampleIn(BaseModel):
     lon: float = Field(ge=-180, le=180)
     network_type: NetworkType
 
+    # The modem's own timestamp for the reading. Optional, and must stay
+    # optional: a logger build predating it, or a modem that reports none, still
+    # uploads valid samples. Consecutive samples sharing this value within a
+    # session are re-reads of one measurement, not independent observations.
+    modem_reported_at: Optional[datetime] = None
+
     rsrp: Optional[float] = None
     rsrq: Optional[float] = None
     sinr: Optional[float] = None

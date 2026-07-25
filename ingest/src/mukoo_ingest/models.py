@@ -39,6 +39,11 @@ measurements = Table(
     Column("session_id", UUID(as_uuid=True), nullable=False),
     # The phone's timestamp for the measurement.
     Column("recorded_at", DateTime(timezone=True), nullable=False),
+    # The modem's own timestamp for the reading, when it supplies one. Rows that
+    # share it within a session are re-reads of one latched measurement rather
+    # than independent observations. Nullable: pre-0002 rows and older logger
+    # builds have none.
+    Column("modem_reported_at", DateTime(timezone=True), nullable=True),
     # spatial_index=False: the migration owns the GiST index explicitly, so we
     # keep GeoAlchemy2 from auto-emitting one here.
     Column(
