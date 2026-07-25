@@ -29,6 +29,12 @@ def _build_config(args: argparse.Namespace) -> Config:
         config = replace(config, anisotropy=args.anisotropy)
     if args.none_floor is not None:
         config = replace(config, none_floor=args.none_floor)
+    if args.dedupe_runs is not None:
+        config = replace(config, dedupe_runs=args.dedupe_runs)
+    if args.lag_spacing:
+        config = replace(config, lag_spacing=args.lag_spacing)
+    if args.max_lag_m is not None:
+        config = replace(config, max_lag_m=args.max_lag_m)
     return replace(
         config,
         cell_metres=args.cell_m,
@@ -76,6 +82,22 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--nlags", type=int, default=Config.nlags)
     parser.add_argument(
+        "--lag-spacing",
+        default=None,
+        choices=["log", "linear", "pykrige"],
+        help="how variogram lag bins are spaced: log (default) resolves short "
+        "lags so the nugget is measured; pykrige = equal-width bins over the "
+        "full range, which fits the nugget to ~0 (default: MUKOO_LAG_SPACING)",
+    )
+    parser.add_argument(
+        "--max-lag-m",
+        type=float,
+        default=None,
+        metavar="M",
+        help="longest lag used to fit the variogram (default: all pairs). "
+        "Only helps if the variogram plateaus below the cap",
+    )
+    parser.add_argument(
         "--folds", type=int, default=Config.cv_folds, help="k for k-fold CV"
     )
     parser.add_argument("--seed", type=int, default=Config.cv_seed)
@@ -107,6 +129,15 @@ def main(argv: list[str] | None = None) -> int:
         metavar="DBM",
         help="also load network_type='none' dead-zone rows at this RSRP floor "
         "(e.g. -127; default: MUKOO_NONE_FLOOR env, else excluded)",
+    )
+    parser.add_argument(
+        "--dedupe-runs",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="collapse runs of consecutive samples with an identical "
+        "(rsrp, rsrq, sinr) triple within a session to their first sample — "
+        "the logger samples faster than the modem refreshes "
+        "(default: MUKOO_DEDUPE_RUNS env, else off)",
     )
     parser.add_argument(
         "--compare",
@@ -153,7 +184,10 @@ def _compare(config: Config, args: argparse.Namespace) -> int:
     from .db import make_engine
 
     cloud = load_rsrp_points(
-        make_engine(config.database_url), metric=args.metric, where=args.where
+        make_engine(config.database_url),
+        metric=args.metric,
+        where=args.where,
+        dedupe_runs=config.dedupe_runs,
     )
     rows = compare_models(cloud, config, folds=config.cv_folds)
     print(f"Model comparison ({rows[0][1].scheme}), best first:")

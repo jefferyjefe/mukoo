@@ -70,6 +70,8 @@ def make_model_factory(
                 variogram_model=config.variogram_model,
                 nlags=config.nlags,
                 cell=cloud.cell,
+                lag_spacing=config.lag_spacing,
+                max_lag_m=config.max_lag_m,
             )
             return model.bind_cloud(cloud.x, cloud.y)
 
@@ -83,6 +85,8 @@ def make_model_factory(
             nlags=config.nlags,
             anisotropy_scaling=anisotropy_scaling,
             anisotropy_angle=anisotropy_angle,
+            lag_spacing=config.lag_spacing,
+            max_lag_m=config.max_lag_m,
         )
 
     return factory
@@ -158,6 +162,7 @@ def run(
         metric=metric,
         where=where,
         none_floor=config.none_floor if metric == "rsrp" else None,
+        dedupe_runs=config.dedupe_runs,
     )
     factory = make_model_factory(
         config,
@@ -192,6 +197,8 @@ def run(
         n_merged=cloud.n_merged,
         bounds_lonlat=cloud.bounds_lonlat(),
         surface_paths=surface_paths,
+        dedupe_runs=config.dedupe_runs,
+        n_dedupe_dropped=cloud.n_dedupe_dropped,
     )
     report_path = write_report_json(
         Path(config.output_dir) / f"{prefix}_report.json", report

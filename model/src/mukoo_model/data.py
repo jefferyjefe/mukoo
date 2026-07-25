@@ -5,6 +5,16 @@ Kriging assumes an isotropic distance metric. Raw coordinates are geographic
 the same ground distance, so we project every point into the local UTM zone
 (metres) before any variogram is fitted. Everything downstream — variogram,
 grid, GeoTIFF — lives in that projected CRS.
+
+Two kinds of duplicate are collapsed here, for different reasons:
+
+- **Coincident points** (:func:`_collapse_coincident`) — two rows at the same
+  projected location make the kriging system singular. Purely numerical.
+- **Latched modem readings** (``dedupe_runs``) — the logger samples every ~3.5 s
+  but the modem refreshes its signal report far more slowly, so one measurement
+  is re-read several times in a row. These rows are not independent
+  observations; feeding all of them to a variogram overstates the sample size
+  and biases the short-lag structure. Statistical, and off by default.
 """
 
 from __future__ import annotations
@@ -17,6 +27,59 @@ from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
 WGS84_EPSG = 4326
+
+# Keeps only the first row of each run of consecutive samples that re-report one
+# modem reading within a drive session — see ``dedupe_runs`` in
+# :func:`load_rsrp_points`.
+#
+# A row is a re-read of its predecessor when EITHER:
+#   * the modem stamped both with the same ``modem_reported_at`` — the modem
+#     itself saying "this is the same measurement", which is why that column
+#     exists (schema 0002); or
+#   * the whole signal triple (rsrp, rsrq, sinr) is unchanged — the older,
+#     inferential test, and the only one available for rows recorded before the
+#     logger reported a modem timestamp.
+#
+# Taking either is deliberately the more aggressive reading, and it degrades
+# safely in both directions: with no modem timestamp (every row predating 0002)
+# the first test never fires and this reduces exactly to the value comparison,
+# and if a modem restamps a latched value on every poll the first test simply
+# never matches. Neither case can make the filter keep fewer rows than the value
+# test alone would.
+#
+# Notes on the shape of this query:
+# * The window runs over *every* row of the session, before any metric or
+#   caller predicate is applied. A run is a property of the raw time series, so
+#   which rows a later filter happens to keep must not change where runs begin.
+# * Ordered by ``recorded_at`` (the phone's clock), not ``id``: ``id`` is upload
+#   order, and store-and-forward means a session can be uploaded long after it
+#   was driven, interleaved with others.
+# * ``IS NOT DISTINCT FROM`` so that NULL == NULL counts as unchanged; a
+#   dead-zone stretch (null metric) collapses like any other repeated reading.
+# * ``m.*`` passes every original column through, so the outer query's
+#   predicates — including a caller-supplied ``where`` — still see the full
+#   table. The subquery is aliased ``measurements`` for the same reason.
+_RUN_START_SUBQUERY = """(
+    SELECT * FROM (
+        SELECT m.*,
+               lag(m.session_id)        OVER w AS _prev_session,
+               lag(m.rsrp)              OVER w AS _prev_rsrp,
+               lag(m.rsrq)              OVER w AS _prev_rsrq,
+               lag(m.sinr)              OVER w AS _prev_sinr,
+               lag(m.modem_reported_at) OVER w AS _prev_modem
+        FROM measurements m
+        WINDOW w AS (PARTITION BY m.session_id ORDER BY m.recorded_at, m.id)
+    ) s
+    WHERE s._prev_session IS NULL
+       OR NOT (
+              (s.modem_reported_at IS NOT NULL
+               AND s._prev_modem IS NOT NULL
+               AND s.modem_reported_at = s._prev_modem)
+           OR (s.rsrp IS NOT DISTINCT FROM s._prev_rsrp
+               AND s.rsrq IS NOT DISTINCT FROM s._prev_rsrq
+               AND s.sinr IS NOT DISTINCT FROM s._prev_sinr)
+          )
+) AS measurements"""
 
 
 def utm_epsg_for(lon: float, lat: float) -> int:
@@ -54,6 +117,9 @@ class PointCloud:
     n_raw: int  # rows returned by the query, before collapsing duplicates
     session: np.ndarray | None = None  # (n,) str labels, or None
     cell: np.ndarray | None = None  # (n,) str labels ("" where null), or None
+    # Rows matching the predicate *before* the consecutive-run filter dropped
+    # latched re-reads; None when that filter was not applied.
+    n_before_dedupe: int | None = None
 
     @property
     def n(self) -> int:
@@ -63,6 +129,13 @@ class PointCloud:
     def n_merged(self) -> int:
         """How many rows were merged away when collapsing coincident points."""
         return self.n_raw - self.n
+
+    @property
+    def n_dedupe_dropped(self) -> int:
+        """Rows dropped as latched re-reads (0 when dedupe was off)."""
+        if self.n_before_dedupe is None:
+            return 0
+        return self.n_before_dedupe - self.n_raw
 
     def bounds_xy(self) -> tuple[float, float, float, float]:
         """(xmin, ymin, xmax, ymax) of the points, in projected metres."""
@@ -129,6 +202,7 @@ def load_rsrp_points(
     metric: str = "rsrp",
     where: str | None = None,
     none_floor: float | None = None,
+    dedupe_runs: bool = False,
 ) -> PointCloud:
     """Load non-null ``metric`` measurements from PostGIS into a PointCloud.
 
@@ -144,6 +218,20 @@ def load_rsrp_points(
     reading ("at or below anything a phone can report"), so a floor slightly
     under the device's weakest real report keeps no-coverage areas from being
     interpolated as ordinary gaps between healthy readings.
+
+    ``dedupe_runs`` keeps only the first sample of each run of consecutive rows
+    that re-report one modem reading within a session — identified by a shared
+    ``modem_reported_at`` where the logger recorded one, otherwise by an
+    unchanged ``(rsrp, rsrq, sinr)`` triple.
+    The logger samples faster than the modem refreshes its signal report, so
+    such a run is one measurement re-read, not several observations. The *first*
+    sample is the representative because the modem's averaging window closes at
+    or before the moment the value first appears — the reading's true location
+    is at, or slightly behind, the run's start, never ahead of it. (Taking the
+    run's midpoint would displace a value forward by up to half the run's
+    length, which on real drive data reaches several hundred metres.) Keeping
+    the first is also append-stable: a later upload never moves an existing
+    representative.
     """
     allowed = {"rsrp", "rsrq", "sinr"}
     if metric not in allowed:
@@ -158,14 +246,25 @@ def load_rsrp_points(
         value_expr = f"coalesce({metric}, {float(none_floor)})"
     if where:
         predicate = f"({predicate}) AND ({where})"
+    source = _RUN_START_SUBQUERY if dedupe_runs else "measurements"
     sql = text(
         f"SELECT ST_X(geom) AS lon, ST_Y(geom) AS lat, {value_expr} AS value, "
         f"session_id::text AS session, coalesce(cell_id, '') AS cell "
-        f"FROM measurements WHERE {predicate} ORDER BY id"
+        f"FROM {source} WHERE {predicate} ORDER BY id"
     )
 
     with engine.connect() as conn:
         rows = conn.execute(sql).all()
+        # Same predicate, no run filter: how many rows the dedupe stood down.
+        n_before_dedupe = (
+            int(
+                conn.execute(
+                    text(f"SELECT count(*) FROM measurements WHERE {predicate}")
+                ).scalar_one()
+            )
+            if dedupe_runs
+            else None
+        )
     if not rows:
         raise ValueError(
             f"No measurements with non-null {metric}"
@@ -205,4 +304,5 @@ def load_rsrp_points(
         n_raw=n_raw,
         session=session,
         cell=cell,
+        n_before_dedupe=n_before_dedupe,
     )

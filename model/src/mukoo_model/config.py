@@ -30,9 +30,34 @@ DEFAULT_CELL_METRES = 150.0
 # Override with --variogram-model to re-check as more data lands.
 DEFAULT_VARIOGRAM_MODEL = "exponential"
 
-# Number of empirical-variogram lag bins. pykrige defaults to 6, which is coarse
-# for ~1.4k points; 12 resolves the short-range structure that matters here.
-DEFAULT_NLAGS = 12
+# Number of empirical-variogram lag bins. pykrige defaults to 6; with the
+# logarithmic lag axis below, 25 bins put ~8 of them under 200 m while still
+# reaching the far field, which is what pins down the nugget.
+DEFAULT_NLAGS = 25
+
+# How inter-point distances are binned when estimating the variogram:
+#   "log"     — logarithmic lag axis (default). Resolves tens of metres and tens
+#               of kilometres at once, so the nugget is measured rather than
+#               extrapolated.
+#   "linear"  — equal-width bins, but honouring MUKOO_MAX_LAG_M.
+#   "pykrige" — delegate to pykrige: equal-width bins over the full separation
+#               range, no cap. Reproduces reports written before this existed;
+#               on a ~22 km survey its first bin is ~1.9 km wide, which fits the
+#               nugget to ~0 and makes the kriging variance far too confident.
+DEFAULT_LAG_SPACING = "log"
+
+# Kept in step with ``mukoo_model.kriging.LAG_SPACINGS`` by hand: importing that
+# module here would drag pykrige/scipy into every entry point, including
+# mukoo-claims, which deliberately keeps heavy imports off its fast path.
+LAG_SPACINGS = ("log", "linear", "pykrige")
+
+# Cap on the longest lag used to fit the variogram, in metres. None = use every
+# pair. Capping focuses the fit on the lags that drive kriging weights, but only
+# helps if the variogram plateaus inside the cap — on this survey the empirical
+# curve is still climbing at 6 km, so a cap there sends the fitted range and sill
+# running away. Left unset for that reason; the log lag axis is what buys the
+# short-range resolution.
+DEFAULT_MAX_LAG_M: "float | None" = None
 
 # k for k-fold cross-validation, and the RNG seed for the fold assignment.
 DEFAULT_CV_FOLDS = 10
@@ -57,11 +82,30 @@ KRIGING_MODES = ("ordinary", "pathloss")
 # phone can report.
 DEFAULT_NONE_FLOOR: "float | None" = None
 
+# Collapse runs of consecutive samples whose (rsrp, rsrq, sinr) triple is
+# unchanged within a session down to their first sample. The logger samples every
+# ~3.5 s but the modem refreshes its signal report far more slowly, so such a run
+# is one reading re-read — not independent observations. Off by default so the
+# historical row counts and published reports stay reproducible; settable via
+# MUKOO_DEDUPE_RUNS so the auto-refresh agent and the suggester pick it up
+# without CLI flags. See ``dedupe_runs`` in ``mukoo_model.data``.
+DEFAULT_DEDUPE_RUNS = False
+
 # Variogram anisotropy (scaling, angle-deg CCW from east) for ordinary kriging.
 # (1.0, 0.0) = isotropic. Settable via MUKOO_ANISOTROPY as "SCALING:ANGLE"
 # (e.g. "3:150") so a winner found by `mukoo-krige --compare` can be adopted by
 # the auto-refresh agent and the suggester without CLI flags.
 DEFAULT_ANISOTROPY: "tuple[float, float]" = (1.0, 0.0)
+
+
+def parse_bool(value: str) -> bool:
+    """Parse a boolean environment variable ("1", "true", "yes", "on")."""
+    lowered = value.strip().lower()
+    if lowered in {"1", "true", "yes", "on"}:
+        return True
+    if lowered in {"0", "false", "no", "off", ""}:
+        return False
+    raise ValueError(f"expected a boolean like 1/0 or true/false, got {value!r}")
 
 
 def parse_anisotropy(value: str) -> "tuple[float, float]":
@@ -88,6 +132,9 @@ class Config:
     kriging_mode: str = DEFAULT_KRIGING_MODE
     none_floor: "float | None" = DEFAULT_NONE_FLOOR
     anisotropy: "tuple[float, float]" = DEFAULT_ANISOTROPY
+    dedupe_runs: bool = DEFAULT_DEDUPE_RUNS
+    lag_spacing: str = DEFAULT_LAG_SPACING
+    max_lag_m: "float | None" = DEFAULT_MAX_LAG_M
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -99,10 +146,22 @@ class Config:
             )
         floor_raw = os.environ.get("MUKOO_NONE_FLOOR")
         aniso_raw = os.environ.get("MUKOO_ANISOTROPY")
+        dedupe_raw = os.environ.get("MUKOO_DEDUPE_RUNS")
+        spacing = os.environ.get("MUKOO_LAG_SPACING", DEFAULT_LAG_SPACING)
+        if spacing not in LAG_SPACINGS:
+            raise ValueError(
+                f"MUKOO_LAG_SPACING must be one of {LAG_SPACINGS}, got {spacing!r}"
+            )
+        max_lag_raw = os.environ.get("MUKOO_MAX_LAG_M")
         return cls(
             database_url=os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL),
             output_dir=Path(out) if out else DEFAULT_OUTPUT_DIR,
             kriging_mode=mode,
             none_floor=float(floor_raw) if floor_raw else DEFAULT_NONE_FLOOR,
             anisotropy=parse_anisotropy(aniso_raw) if aniso_raw else DEFAULT_ANISOTROPY,
+            dedupe_runs=(
+                parse_bool(dedupe_raw) if dedupe_raw else DEFAULT_DEDUPE_RUNS
+            ),
+            lag_spacing=spacing,
+            max_lag_m=float(max_lag_raw) if max_lag_raw else DEFAULT_MAX_LAG_M,
         )

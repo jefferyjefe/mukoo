@@ -40,7 +40,35 @@ mukoo-krige --compare         # model shoot-out, judged by session CV
 ```
 
 Other flags: `--variogram-model`, `--cell-m` (150), `--folds`, `--block-m`
-(2000), `--out-dir`, `--metric {rsrp,rsrq,sinr}`, `--where`, `--none-floor`.
+(2000), `--out-dir`, `--metric {rsrp,rsrq,sinr}`, `--where`, `--none-floor`,
+`--dedupe-runs` / `--no-dedupe-runs`, `--lag-spacing`, `--max-lag-m`, `--nlags`.
+
+**Variogram lag binning (`--lag-spacing`).** pykrige bins inter-point distances
+into `nlags` *equal-width* bins over the full range of separations, with no way
+to cap the longest lag. On a survey ~22 km across, that makes the first bin
+~1.9 km wide — nothing observes sub-kilometre structure, so the nugget is
+extrapolated to ~0 and the model claims near-perfect knowledge at short range.
+The kriging variance is then far too small (within-1σ ≈ 40% against a 68%
+target). The default `log` spacing puts several bins under 200 m while still
+reaching the far field, so the nugget is *measured*; the fitted parameters are
+handed to pykrige, which does the kriging but not the variogram estimation.
+`--lag-spacing pykrige` restores the old delegated behaviour.
+
+`--max-lag-m` caps the longest lag used for the fit. It only helps if the
+variogram plateaus below the cap — on this survey the empirical curve is still
+climbing at 6 km, so capping there sends the fitted range and sill running away.
+Left unset by default for that reason.
+
+**Latched modem readings (`--dedupe-runs`).** The field logger samples every
+~3.5 s, but the modem refreshes its signal report far more slowly, so one
+measurement is re-read several times in a row — on the current dataset ~86% of
+rows repeat the previous `(rsrp, rsrq, sinr)` triple exactly. Those rows are not
+independent observations: they inflate the apparent sample size, and in random
+k-fold CV a held-out row's own twin can sit in the training fold. `--dedupe-runs`
+keeps only the **first** sample of each such run within a session (the modem's
+averaging window closes at or before the value first appears, so the reading
+belongs at the run's start, never ahead of it). The raw table is never modified —
+this is a load-time filter, so the stored measurements remain the record.
 
 **Adopting a `--compare` winner.** The choice persists via environment
 variables, which every entry point (including the auto-refresh agent and
@@ -51,6 +79,9 @@ variables, which every entry point (including the auto-refresh agent and
 | `MUKOO_KRIGING` | `ordinary` (default) or `pathloss` | `pathloss` |
 | `MUKOO_ANISOTROPY` | variogram anisotropy `SCALING:ANGLE` | `3:150` |
 | `MUKOO_NONE_FLOOR` | include `network_type='none'` dead-zone rows at this RSRP (dBm); unset = excluded | `-127` |
+| `MUKOO_DEDUPE_RUNS` | collapse runs of consecutive identical `(rsrp, rsrq, sinr)` samples to their first sample; unset = off | `1` |
+| `MUKOO_LAG_SPACING` | variogram lag axis: `log` (default), `linear`, or `pykrige` | `log` |
+| `MUKOO_MAX_LAG_M` | cap on the longest lag used to fit the variogram; unset = all pairs | `12000` |
 
 ## FCC claims check
 

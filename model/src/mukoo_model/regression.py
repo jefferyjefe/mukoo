@@ -34,9 +34,11 @@ class PathLossKrigingModel:
         self,
         *,
         variogram_model: str = "exponential",
-        nlags: int = 12,
+        nlags: int = 25,
         cell: np.ndarray | None = None,
         min_tower_samples: int = 20,
+        lag_spacing: str = "log",
+        max_lag_m: "float | None" = None,
     ) -> None:
         # ``cell`` holds the per-point serving-cell labels for the FULL cloud;
         # fit_arrays receives x/y subsets during CV, so labels are matched to
@@ -49,8 +51,13 @@ class PathLossKrigingModel:
             self._cell_labels = np.asarray(cell, dtype=object)
         self.min_tower_samples = min_tower_samples
 
+        # The residual field gets the same lag axis as plain ordinary kriging —
+        # detrending changes the values, not how far apart the samples are.
         self._residual = OrdinaryKrigingModel(
-            variogram_model=variogram_model, nlags=nlags
+            variogram_model=variogram_model,
+            nlags=nlags,
+            lag_spacing=lag_spacing,
+            max_lag_m=max_lag_m,
         )
         self._towers: np.ndarray | None = None
         self._coef: tuple[float, float] | None = None  # (a, b)

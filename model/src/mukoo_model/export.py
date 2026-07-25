@@ -106,6 +106,8 @@ def build_report(
     n_merged: int,
     bounds_lonlat: tuple[float, float, float, float],
     surface_paths: dict[str, Path],
+    dedupe_runs: bool = False,
+    n_dedupe_dropped: int = 0,
 ) -> dict:
     """Assemble the JSON run report: CV metrics, variogram, grid, provenance.
 
@@ -137,6 +139,10 @@ def build_report(
             "n_points_used": surface.n_points,
             "n_rows_read": n_raw,
             "n_merged_duplicates": n_merged,
+            # Latched-modem-reading dedupe: a report is only comparable to
+            # another with the same setting, so record it either way.
+            "dedupe_consecutive_runs": dedupe_runs,
+            "n_dropped_latched_rereads": n_dedupe_dropped,
             "bounds_lonlat": {
                 "lon_min": lon_min,
                 "lat_min": lat_min,

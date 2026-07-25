@@ -70,9 +70,9 @@ def _recompute_surfaces(
     """(stddev, mean, grid, range_m) refit from PostGIS.
 
     Uses the same model the main pipeline would (config's kriging mode,
-    anisotropy, and dead-zone floor), so recomputed suggestions match what
-    ``mukoo-krige`` exports rather than silently reverting to plain ordinary
-    kriging.
+    anisotropy, dead-zone floor, and run dedupe), so recomputed suggestions
+    match what ``mukoo-krige`` exports rather than silently reverting to plain
+    ordinary kriging.
     """
     from .pipeline import make_model_factory  # local: avoids import cycle risk
 
@@ -81,6 +81,7 @@ def _recompute_surfaces(
         engine,
         metric=metric,
         none_floor=config.none_floor if metric == "rsrp" else None,
+        dedupe_runs=config.dedupe_runs,
     )
     model = make_model_factory(
         config,
