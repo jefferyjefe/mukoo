@@ -125,6 +125,36 @@ The first migration creates `measurements`, one row per reading:
 - `cell_id` (nullable), `speed_mps` / `heading_deg` (nullable)
 - `carrier`
 - `received_at` (timestamptz, server-side `now()` default)
+- `modem_reported_at` (timestamptz, **nullable**, added in `0002`) — the modem's
+  own timestamp for the reading. Consecutive rows in a session that share it are
+  re-reads of one measurement, not independent observations. Null for rows
+  recorded before the column existed, and for any client that does not report
+  one; the field is optional in the ingest schema so older logger builds upload
+  unchanged.
+
+### Latched readings
+
+The logger samples every ~3 s but the modem refreshes its signal report far more
+slowly, so one measurement can be re-read several times. Across the first 3,130
+samples, **~84% of rows repeated the previous `(rsrp, rsrq, sinr)` triple
+exactly.** Those rows are not independent observations: they overstate the sample
+size and distort the variogram's short-lag structure, and in random k-fold CV a
+held-out row's own twin can sit in the training fold.
+
+This is handled at both ends:
+
+- **On the phone**, a change gate stores a sample only when the reading actually
+  changed (`SignalChangeGate`). Replayed over those same 3,130 real samples it
+  keeps 502 — a 6.2x reduction, and it is the moving rows that shrink, where the
+  older stationary thinning never engaged.
+- **In the model**, `mukoo-krige --dedupe-runs` collapses the runs at load time
+  (`MUKOO_DEDUPE_RUNS=1`, set for the refresh agent), so historical rows recorded
+  before the gate existed are treated the same way. The raw table is never
+  modified — see [model/README.md](model/README.md).
+- **`GET /v1/stats`** reports the re-read share and the resulting
+  `independent_rows`, so the effective sample size is visible without running the
+  model. On the current 3,130 rows: 2,703 re-reads, **427 independent** — the
+  same figure the model's dedupe arrives at independently.
 
 ## Quick start
 

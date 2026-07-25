@@ -26,7 +26,20 @@
   <dict>
     <key>DATABASE_URL</key>
     <string>postgresql+psycopg2://mukoo:mukoo@localhost:5432/mukoo</string>
+    <!-- Collapse runs of consecutive identical (rsrp, rsrq, sinr) samples to
+         their first sample: the logger samples every ~3.5 s but the modem
+         refreshes its signal report far more slowly, so ~86% of rows are one
+         reading re-read. Both mukoo-krige and mukoo-suggest read this, so the
+         surface and the targets derived from it stay consistent. -->
+    <key>MUKOO_DEDUPE_RUNS</key>
+    <string>1</string>
   </dict>
+  <!-- launchd starts jobs in / , which is read-only on macOS. osmnx caches
+       Overpass responses in a *relative* './cache', so without this every run
+       died with "[Errno 30] Read-only file system: 'cache'" once there was new
+       data to actually work on. -->
+  <key>WorkingDirectory</key>
+  <string>/Users/jefferyhuang/mukoo</string>
   <key>StartInterval</key>
   <integer>900</integer>
   <key>RunAtLoad</key>
