@@ -3,6 +3,7 @@ package com.mukoo.logger;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.os.SystemClock;
 import android.telephony.CellIdentityLte;
 import android.telephony.CellIdentityNr;
 import android.telephony.CellInfo;
@@ -22,6 +23,11 @@ import java.util.List;
 // so it is data, not an error to skip.
 public class SignalReader {
 
+    // Beyond this, a CellInfo timestamp is treated as uninterpretable rather than
+    // trusted. Cell state turns over in seconds; a reading the modem claims is
+    // ten minutes old is a clock we should not reason from.
+    static final long MAX_MODEM_TIMESTAMP_AGE_MS = 10 * 60 * 1000L;
+
     // just the radio-side fields; the sampler adds gps + the ids on top.
     public static class Reading {
         public String networkType = "none";
@@ -29,6 +35,12 @@ public class SignalReader {
         public Double rsrq;
         public Double sinr;
         public String cellId;
+        // wall-clock millis the modem stamped this reading, or null if it gave
+        // none. this is the modem's clock, not ours: two reads that return the
+        // same value AND the same modemReportedAtMs are one measurement fetched
+        // twice, which is what makes latched re-reads identifiable server-side
+        // instead of merely guessable from equal values.
+        public Long modemReportedAtMs;
     }
 
     private final Context context;
@@ -76,11 +88,32 @@ public class SignalReader {
 
         if (nr != null) {
             fillNr(r, nr);
+            r.modemReportedAtMs = wallClockOf(nr);
         } else if (lte != null) {
             fillLte(r, lte);
+            r.modemReportedAtMs = wallClockOf(lte);
         }
-        // otherwise r stays the default "none" dead-zone reading.
+        // otherwise r stays the default "none" dead-zone reading. no serving cell
+        // means no CellInfo to carry a timestamp, so modemReportedAtMs stays null.
         return r;
+    }
+
+    // CellInfo timestamps are on the boot-relative clock (SystemClock
+    // .elapsedRealtime), which is meaningless off-device. Convert to wall clock
+    // via the reading's age so the server gets an absolute instant comparable to
+    // recorded_at. Age, not the raw value, is the invariant: elapsedRealtime is
+    // immune to wall-clock jumps (NTP, timezone), so deriving from it survives
+    // a clock correction mid-drive.
+    private static Long wallClockOf(CellInfo info) {
+        long ageMs = SystemClock.elapsedRealtime() - info.getTimestampMillis();
+        // Sanity-guard the arithmetic rather than trusting the modem. A negative
+        // age (timestamp in the future) or an implausibly old one means we cannot
+        // interpret it, and a wrong timestamp is worse than none: it would make
+        // distinct measurements look like one re-read.
+        if (ageMs < 0L || ageMs > MAX_MODEM_TIMESTAMP_AGE_MS) {
+            return null;
+        }
+        return System.currentTimeMillis() - ageMs;
     }
 
     private void fillNr(Reading r, CellInfoNr info) {

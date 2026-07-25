@@ -23,15 +23,32 @@ so the APK is tiny and there is nothing to resolve or break in the field.
 - **Slow sampling is the big saving.** We sample every ~3s. Cell state changes
   over seconds, not milliseconds, so a low cadence costs almost nothing and still
   captures everything that matters.
+- **Only store a reading that changed.** Even at 3s we outrun the modem, which
+  refreshes its signal report far more slowly — across the first 3,130 samples,
+  ~86% of stored rows re-reported the previous reading. `SignalChangeGate` drops
+  those: a row is stored when a metric moves, when the network type changes
+  (entering a dead zone is never thinned away), when the serving cell changes, or
+  every 30s regardless so a steady drive still leaves a spatial trace. Replayed
+  over those 3,130 real samples it keeps 502 — a 6.2x cut, almost all of it while
+  moving, since stationary thinning already handled the parked case.
+  Each stored sample also carries `modem_reported_at`, the modem's own timestamp,
+  so a re-read is identifiable at ingestion instead of inferred from equal values.
+- **Thinning bounds modem polls; the gate bounds rows.** Stationary thinning keys
+  off the last time we *read* the modem, not the last row stored — otherwise it
+  would stop suppressing as soon as the gate started dropping reads, and parking
+  for an hour would poll the modem ~1200 times instead of ~120.
 
 ## How it fits together
 
 - `MainActivity` — the whole UI: a start/stop button and live counts of samples
   logged vs uploaded. It just toggles the service and polls the local db.
 - `DriveSessionService` — a foreground service (so sampling survives the screen
-  turning off in the car). Each tick reads GPS + the serving-cell signal, writes
-  one row, and periodically flushes the buffer.
-- `SignalReader` — pulls RSRP/RSRQ/SINR, network type and cell id off the modem.
+  turning off in the car). Each tick reads GPS + the serving-cell signal, stores a
+  row if the reading changed, and periodically flushes the buffer.
+- `SignalReader` — pulls RSRP/RSRQ/SINR, network type, cell id and the modem's
+  own reading timestamp off the modem.
+- `SignalChangeGate` — decides whether a reading is new enough to store. Plain
+  object, no Android dependencies, so the logic is unit-tested on the JVM.
 - `LocationTracker` — holds the latest GPS fix (lat, lon, speed, heading).
 - `SampleStore` — the SQLite store-and-forward buffer.
 - `Uploader` — drains the buffer to `POST /v1/measurements`, one session-batch

@@ -14,7 +14,11 @@ import java.util.List;
 public class SampleStore extends SQLiteOpenHelper {
 
     private static final String DB_NAME = "mukoo.db";
-    private static final int DB_VERSION = 1;
+    // v2 adds modem_reported_at. bumping this runs onUpgrade on an existing
+    // install rather than losing the buffer: unsent rows from a v1 database are
+    // mid-drive data, and this store is also the recovery source of truth for the
+    // server (it keeps every sample forever, uploaded or not).
+    private static final int DB_VERSION = 2;
     private static final String TABLE = "samples";
 
     public SampleStore(Context context) {
@@ -29,6 +33,7 @@ public class SampleStore extends SQLiteOpenHelper {
             "sample_id TEXT NOT NULL UNIQUE, " +
             "session_id TEXT NOT NULL, " +
             "recorded_at TEXT NOT NULL, " +
+            "modem_reported_at TEXT, " +
             "lat REAL NOT NULL, " +
             "lon REAL NOT NULL, " +
             "network_type TEXT NOT NULL, " +
@@ -41,7 +46,13 @@ public class SampleStore extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        // single schema version so far, nothing to migrate.
+        // additive only, and never destructive: rows already here may be unsent
+        // drive data, and this database is the server's recovery source.
+        if (oldVersion < 2) {
+            // nullable with no default: rows recorded before the column existed
+            // genuinely have no modem timestamp, and NULL says that honestly.
+            db.execSQL("ALTER TABLE " + TABLE + " ADD COLUMN modem_reported_at TEXT");
+        }
     }
 
     public void insert(Sample s) {
@@ -49,6 +60,11 @@ public class SampleStore extends SQLiteOpenHelper {
         v.put("sample_id", s.sampleId);
         v.put("session_id", s.sessionId);
         v.put("recorded_at", s.recordedAt);
+        if (s.modemReportedAt != null) {
+            v.put("modem_reported_at", s.modemReportedAt);
+        } else {
+            v.putNull("modem_reported_at");
+        }
         v.put("lat", s.lat);
         v.put("lon", s.lon);
         v.put("network_type", s.networkType);
@@ -135,7 +151,7 @@ public class SampleStore extends SQLiteOpenHelper {
     public List<Sample> unsentForSession(String sessionId, int limit) {
         Cursor c = getReadableDatabase().rawQuery(
             "SELECT sample_id, recorded_at, lat, lon, network_type, rsrp, rsrq, sinr, " +
-            "cell_id, speed_mps, heading_deg FROM " + TABLE +
+            "cell_id, speed_mps, heading_deg, modem_reported_at FROM " + TABLE +
             " WHERE uploaded = 0 AND session_id = ? ORDER BY _id LIMIT " + limit,
             new String[]{sessionId});
         List<Sample> out = new ArrayList<>();
@@ -154,6 +170,8 @@ public class SampleStore extends SQLiteOpenHelper {
                 s.cellId = c.isNull(8) ? null : c.getString(8);
                 s.speedMps = nullableDouble(c, 9);
                 s.headingDeg = nullableDouble(c, 10);
+                // null for rows written by a pre-v2 build; those still upload.
+                s.modemReportedAt = c.isNull(11) ? null : c.getString(11);
                 out.add(s);
             }
         } finally {

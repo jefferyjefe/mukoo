@@ -8,6 +8,10 @@ public class Sample {
     public String sampleId;      // client-generated uuid, the server's idempotency key
     public String sessionId;     // one uuid per drive
     public String recordedAt;    // iso-8601 utc, e.g. 2026-07-10T18:04:12.482Z
+    // the modem's own timestamp for this reading, iso-8601 utc, or null when it
+    // supplied none (dead zone, or a modem that does not report one). rows in a
+    // session sharing this value are re-reads of a single measurement.
+    public String modemReportedAt;
     public double lat;
     public double lon;
     public String networkType;   // "LTE" | "5G-NR" | "none"

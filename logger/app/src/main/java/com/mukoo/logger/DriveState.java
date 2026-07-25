@@ -20,7 +20,8 @@ public final class DriveState {
     // this process. elapsedRealtime is monotonic and unaffected by clock changes.
     private static volatile long lastSampleElapsedMs = 0L;
     // last time the sampler LOOP ran, whether or not it kept the sample. a tick
-    // that skips (stale gps fix, stationary thinning) still proves the loop is
+    // that skips (stale gps fix, stationary thinning, or the change gate finding
+    // the modem re-reported its previous reading) still proves the loop is
     // alive — the health line's STALL detector keys off this, not off row writes,
     // so intentional skips never read as a stalled logger.
     private static volatile long lastTickElapsedMs = 0L;

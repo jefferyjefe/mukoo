@@ -58,10 +58,12 @@ public class DriveSessionService extends Service {
     public static final long MAX_FIX_AGE_MS = 10_000L;
 
     // stationary thinning, tunable. sitting at a 2-minute red light at the 3s
-    // cadence writes ~40 near-identical rows; instead, once we've moved less
-    // than MIN_MOVE_METERS since the last kept sample we keep one sample per
-    // STATIONARY_KEEP_INTERVAL_MS. trade-off: repeated stationary readings do
-    // have averaging value, so flip THIN_WHEN_STATIONARY off to log every tick.
+    // cadence would read the modem ~40 times; instead, once we've moved less
+    // than MIN_MOVE_METERS since the last reading we take at most one per
+    // STATIONARY_KEEP_INTERVAL_MS. this bounds the modem polling; whether the
+    // reading is then *stored* is SignalChangeGate's call. trade-off: repeated
+    // stationary readings do have averaging value, so flip THIN_WHEN_STATIONARY
+    // off to read every tick.
     // note this also thins a sub-12km/h crawl (a tick moves <10m there), which
     // for coverage mapping is the same "not really going anywhere" case.
     static final boolean THIN_WHEN_STATIONARY = true;
@@ -89,9 +91,14 @@ public class DriveSessionService extends Service {
     // just skips — the running flush already drains everything unsent.
     private final AtomicBoolean flushInFlight = new AtomicBoolean(false);
 
-    // last KEPT sample, for stationary thinning.
-    private Location lastKeptLoc;
-    private long lastKeptElapsedMs;
+    // where and when we last EVALUATED the signal, for stationary thinning. not
+    // the last stored row: the change gate drops most reads, and thinning must
+    // keep suppressing modem polls while parked regardless.
+    private Location lastEvalLoc;
+    private long lastEvalElapsedMs;
+
+    // suppresses ticks where the modem returned the same reading again.
+    private final SignalChangeGate changeGate = new SignalChangeGate();
 
     @Override
     public void onCreate() {
@@ -146,8 +153,11 @@ public class DriveSessionService extends Service {
         location.start();
         running = true;
         tick = 0;
-        lastKeptLoc = null;
-        lastKeptElapsedMs = 0L;
+        lastEvalLoc = null;
+        lastEvalElapsedMs = 0L;
+        // a fresh drive must not inherit the last one's baseline, or its opening
+        // reading would look unchanged and be dropped.
+        changeGate.reset();
         worker.post(sampleLoop);
         return START_STICKY;
     }
@@ -184,15 +194,30 @@ public class DriveSessionService extends Service {
             return;
         }
 
-        // stationary thinning: barely moved and recently sampled -> skip.
+        // stationary thinning: barely moved and recently looked -> skip.
         long nowElapsed = SystemClock.elapsedRealtime();
-        if (THIN_WHEN_STATIONARY && lastKeptLoc != null
-                && loc.distanceTo(lastKeptLoc) < MIN_MOVE_METERS
-                && (nowElapsed - lastKeptElapsedMs) < STATIONARY_KEEP_INTERVAL_MS) {
+        if (THIN_WHEN_STATIONARY && lastEvalLoc != null
+                && loc.distanceTo(lastEvalLoc) < MIN_MOVE_METERS
+                && (nowElapsed - lastEvalElapsedMs) < STATIONARY_KEEP_INTERVAL_MS) {
             return;
         }
 
         SignalReader.Reading r = signal.read();
+        // record the LOOK, not the write. the change gate below drops most reads,
+        // and if thinning keyed off the last stored row instead it would stop
+        // suppressing as soon as the gate started rejecting — parking for an hour
+        // would poll the modem ~1200 times instead of ~120.
+        lastEvalLoc = new Location(loc);
+        lastEvalElapsedMs = nowElapsed;
+
+        // change gate: the modem refreshes far more slowly than we tick, so most
+        // reads return the previous measurement again. storing those inflates the
+        // dataset with correlated rows that are not independent observations.
+        // note this runs AFTER the stale-fix and stationary checks but BEFORE the
+        // insert, and the tick still counts as alive either way.
+        if (!changeGate.admit(r, nowElapsed)) {
+            return;
+        }
 
         Sample s = new Sample();
         s.sampleId = UUID.randomUUID().toString();
@@ -208,12 +233,13 @@ public class DriveSessionService extends Service {
         s.rsrq = r.rsrq;
         s.sinr = r.sinr;
         s.cellId = r.cellId;
+        s.modemReportedAt = r.modemReportedAtMs == null
+                ? null
+                : Instant.ofEpochMilli(r.modemReportedAtMs).toString();
         s.speedMps = loc.hasSpeed() ? (double) loc.getSpeed() : null;
         s.headingDeg = loc.hasBearing() ? normalizeBearing(loc.getBearing()) : null;
 
         store.insert(s);
-        lastKeptLoc = new Location(loc);
-        lastKeptElapsedMs = nowElapsed;
         // publish for the health line: logging is alive, last sample = now.
         DriveState.onSampleRecorded();
 

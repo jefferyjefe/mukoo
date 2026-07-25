@@ -124,6 +124,11 @@ public class Uploader {
         JSONObject o = new JSONObject();
         o.put("sample_id", s.sampleId);
         o.put("recorded_at", s.recordedAt);
+        // omitted entirely (not JSON null) when absent: the field is optional
+        // server-side, so a pre-v2 row uploads as the old payload shape did.
+        if (s.modemReportedAt != null) {
+            o.put("modem_reported_at", s.modemReportedAt);
+        }
         o.put("lat", s.lat);
         o.put("lon", s.lon);
         o.put("network_type", s.networkType);
