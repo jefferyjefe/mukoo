@@ -108,6 +108,8 @@ def build_report(
     surface_paths: dict[str, Path],
     dedupe_runs: bool = False,
     n_dedupe_dropped: int = 0,
+    min_session_rows: int = 1,
+    excluded_sessions: "tuple[str, ...]" = (),
 ) -> dict:
     """Assemble the JSON run report: CV metrics, variogram, grid, provenance.
 
@@ -143,6 +145,10 @@ def build_report(
             # another with the same setting, so record it either way.
             "dedupe_consecutive_runs": dedupe_runs,
             "n_dropped_latched_rereads": n_dedupe_dropped,
+            # Never drop sessions silently: a reader has to be able to see that
+            # the modelled set is not simply "every session in the table".
+            "min_session_rows": min_session_rows,
+            "excluded_sessions": list(excluded_sessions),
             "bounds_lonlat": {
                 "lon_min": lon_min,
                 "lat_min": lat_min,

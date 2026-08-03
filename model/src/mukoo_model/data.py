@@ -120,6 +120,9 @@ class PointCloud:
     # Rows matching the predicate *before* the consecutive-run filter dropped
     # latched re-reads; None when that filter was not applied.
     n_before_dedupe: int | None = None
+    # Sessions dropped as too small to be real drives (see min_session_rows).
+    # Kept as ids, not just a count, so a run is auditable after the fact.
+    excluded_sessions: "tuple[str, ...]" = ()
 
     @property
     def n(self) -> int:
@@ -203,6 +206,7 @@ def load_rsrp_points(
     where: str | None = None,
     none_floor: float | None = None,
     dedupe_runs: bool = False,
+    min_session_rows: int = 1,
 ) -> PointCloud:
     """Load non-null ``metric`` measurements from PostGIS into a PointCloud.
 
@@ -246,6 +250,25 @@ def load_rsrp_points(
         value_expr = f"coalesce({metric}, {float(none_floor)})"
     if where:
         predicate = f"({predicate}) AND ({where})"
+
+    # Drop sessions too small to be a real drive. A start that records one or two
+    # samples is a phantom service start, not a drive, and it does real damage to
+    # leave-one-session-out CV: several such starts seconds apart hold near-
+    # identical points, so holding one out leaves its twins in the training set
+    # and the fold scores as trivially predictable — flattering precisely the
+    # metric that exists to be honest.
+    #
+    # Counted over the session's RAW rows, deliberately: dedupe can legitimately
+    # reduce a long drive to a handful of points, and counting after that would
+    # throw away real drives.
+    excluded: "tuple[str, ...]" = ()
+    if min_session_rows > 1:
+        predicate = (
+            f"({predicate}) AND session_id IN ("
+            f"SELECT session_id FROM measurements GROUP BY session_id "
+            f"HAVING count(*) >= {int(min_session_rows)})"
+        )
+
     source = _RUN_START_SUBQUERY if dedupe_runs else "measurements"
     sql = text(
         f"SELECT ST_X(geom) AS lon, ST_Y(geom) AS lat, {value_expr} AS value, "
@@ -265,6 +288,17 @@ def load_rsrp_points(
             if dedupe_runs
             else None
         )
+        if min_session_rows > 1:
+            excluded = tuple(
+                str(r[0])
+                for r in conn.execute(
+                    text(
+                        "SELECT session_id FROM measurements GROUP BY session_id "
+                        "HAVING count(*) < :n ORDER BY min(recorded_at)"
+                    ),
+                    {"n": int(min_session_rows)},
+                ).all()
+            )
     if not rows:
         raise ValueError(
             f"No measurements with non-null {metric}"
@@ -305,4 +339,5 @@ def load_rsrp_points(
         session=session,
         cell=cell,
         n_before_dedupe=n_before_dedupe,
+        excluded_sessions=excluded,
     )

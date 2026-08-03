@@ -163,6 +163,7 @@ def run(
         where=where,
         none_floor=config.none_floor if metric == "rsrp" else None,
         dedupe_runs=config.dedupe_runs,
+        min_session_rows=config.min_session_rows,
     )
     factory = make_model_factory(
         config,
@@ -199,6 +200,8 @@ def run(
         surface_paths=surface_paths,
         dedupe_runs=config.dedupe_runs,
         n_dedupe_dropped=cloud.n_dedupe_dropped,
+        min_session_rows=config.min_session_rows,
+        excluded_sessions=cloud.excluded_sessions,
     )
     report_path = write_report_json(
         Path(config.output_dir) / f"{prefix}_report.json", report

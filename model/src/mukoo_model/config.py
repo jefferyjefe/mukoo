@@ -91,6 +91,14 @@ DEFAULT_NONE_FLOOR: "float | None" = None
 # without CLI flags. See ``dedupe_runs`` in ``mukoo_model.data``.
 DEFAULT_DEDUPE_RUNS = False
 
+# Sessions with fewer than this many raw rows are dropped before modelling: a
+# start that records one or two samples is a phantom service start, not a drive.
+# On the current data the split is unambiguous — 8 sessions of exactly 1 row and
+# 16 of 60+, nothing between — so 3 sits in an empty band and cannot clip a real
+# drive. Counted over raw rows, since dedupe can legitimately shrink a long drive
+# to a handful of points. Set to 1 to disable. See MUKOO_MIN_SESSION_ROWS.
+DEFAULT_MIN_SESSION_ROWS = 3
+
 # Variogram anisotropy (scaling, angle-deg CCW from east) for ordinary kriging.
 # (1.0, 0.0) = isotropic. Settable via MUKOO_ANISOTROPY as "SCALING:ANGLE"
 # (e.g. "3:150") so a winner found by `mukoo-krige --compare` can be adopted by
@@ -133,6 +141,7 @@ class Config:
     none_floor: "float | None" = DEFAULT_NONE_FLOOR
     anisotropy: "tuple[float, float]" = DEFAULT_ANISOTROPY
     dedupe_runs: bool = DEFAULT_DEDUPE_RUNS
+    min_session_rows: int = DEFAULT_MIN_SESSION_ROWS
     lag_spacing: str = DEFAULT_LAG_SPACING
     max_lag_m: "float | None" = DEFAULT_MAX_LAG_M
 
@@ -153,6 +162,7 @@ class Config:
                 f"MUKOO_LAG_SPACING must be one of {LAG_SPACINGS}, got {spacing!r}"
             )
         max_lag_raw = os.environ.get("MUKOO_MAX_LAG_M")
+        min_rows_raw = os.environ.get("MUKOO_MIN_SESSION_ROWS")
         return cls(
             database_url=os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL),
             output_dir=Path(out) if out else DEFAULT_OUTPUT_DIR,
@@ -164,4 +174,7 @@ class Config:
             ),
             lag_spacing=spacing,
             max_lag_m=float(max_lag_raw) if max_lag_raw else DEFAULT_MAX_LAG_M,
+            min_session_rows=(
+                int(min_rows_raw) if min_rows_raw else DEFAULT_MIN_SESSION_ROWS
+            ),
         )

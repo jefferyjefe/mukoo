@@ -27,15 +27,21 @@ class _FakeConn:
     assert on its shape.
     """
 
-    def __init__(self, rows, count):
+    def __init__(self, rows, count, excluded=("s1", "s2", "s3")):
         self.rows = rows
         self.count = count
+        self.excluded = excluded
         self.statements: list[str] = []
 
-    def execute(self, sql):
-        self.statements.append(str(sql))
-        if "count(*)" in str(sql):
+    def execute(self, sql, params=None):
+        text = str(sql)
+        self.statements.append(text)
+        # Dispatch on the statement's shape, not on a substring that several of
+        # them share: the main SELECT now carries count(*) in a HAVING clause.
+        if text.lstrip().startswith("SELECT count(*)"):
             return types.SimpleNamespace(scalar_one=lambda: self.count)
+        if "HAVING count(*) <" in text:
+            return types.SimpleNamespace(all=lambda: [(s,) for s in self.excluded])
         return types.SimpleNamespace(all=lambda: self.rows)
 
     def __enter__(self):
@@ -180,3 +186,27 @@ def test_n_dedupe_dropped_defaults_to_zero():
         n_raw=1,
     )
     assert cloud.n_dedupe_dropped == 0
+
+
+def test_min_session_rows_filters_phantom_sessions():
+    """Sessions too small to be a drive are excluded, and recorded as excluded.
+
+    A phantom service start records a sample or two wherever the phone sits.
+    Several of them seconds apart hold near-identical points, so left in they
+    leak across leave-one-session-out folds — the held-out point's twins sit in
+    the training set.
+    """
+    conn = _FakeConn(_three_rows(), count=3)
+    cloud = load_rsrp_points(_FakeEngine(conn), metric="rsrp", min_session_rows=3)
+    select = conn.statements[0]
+    # Counted over raw rows: dedupe can legitimately shrink a long drive, and
+    # counting after that would discard real drives.
+    assert "GROUP BY session_id HAVING count(*) >= 3" in select
+    assert cloud.excluded_sessions == ("s1", "s2", "s3")
+
+
+def test_min_session_rows_of_one_is_a_no_op():
+    conn = _FakeConn(_three_rows(), count=3)
+    cloud = load_rsrp_points(_FakeEngine(conn), metric="rsrp", min_session_rows=1)
+    assert "HAVING count(*)" not in conn.statements[0]
+    assert cloud.excluded_sessions == ()

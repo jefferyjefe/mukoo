@@ -31,6 +31,8 @@ def _build_config(args: argparse.Namespace) -> Config:
         config = replace(config, none_floor=args.none_floor)
     if args.dedupe_runs is not None:
         config = replace(config, dedupe_runs=args.dedupe_runs)
+    if args.min_session_rows is not None:
+        config = replace(config, min_session_rows=args.min_session_rows)
     if args.lag_spacing:
         config = replace(config, lag_spacing=args.lag_spacing)
     if args.max_lag_m is not None:
@@ -81,6 +83,15 @@ def main(argv: list[str] | None = None) -> int:
         choices=["spherical", "exponential", "gaussian", "linear", "power"],
     )
     parser.add_argument("--nlags", type=int, default=Config.nlags)
+    parser.add_argument(
+        "--min-session-rows",
+        type=int,
+        default=None,
+        metavar="N",
+        help="drop sessions with fewer than N raw rows as phantom service "
+        "starts rather than drives; 1 disables "
+        "(default: MUKOO_MIN_SESSION_ROWS env, else 3)",
+    )
     parser.add_argument(
         "--lag-spacing",
         default=None,
@@ -188,6 +199,7 @@ def _compare(config: Config, args: argparse.Namespace) -> int:
         metric=args.metric,
         where=args.where,
         dedupe_runs=config.dedupe_runs,
+        min_session_rows=config.min_session_rows,
     )
     rows = compare_models(cloud, config, folds=config.cv_folds)
     print(f"Model comparison ({rows[0][1].scheme}), best first:")
