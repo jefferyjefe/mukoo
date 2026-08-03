@@ -143,7 +143,15 @@ public class DriveSessionService extends Service {
         } else if (isActive(this) && activeSession(this) != null) {
             sessionId = activeSession(this);
         } else {
-            sessionId = UUID.randomUUID().toString();
+            // Null intent means the system replayed a START_STICKY start. With no
+            // persisted active drive there is nothing to resume: the user already
+            // ended it, and we are being restarted on the strength of a start
+            // command that is no longer meaningful. Minting a UUID here would open
+            // a phantom drive that records a sample or two at wherever the phone
+            // is sitting — which is exactly what put seven one-row sessions in the
+            // dataset seconds after a real drive was stopped. Stand down instead.
+            stopSelf();
+            return START_NOT_STICKY;
         }
         persistActiveSession(sessionId);
         DriveState.onDriveStarted();

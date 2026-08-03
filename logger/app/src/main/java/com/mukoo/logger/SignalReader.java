@@ -23,10 +23,15 @@ import java.util.List;
 // so it is data, not an error to skip.
 public class SignalReader {
 
-    // Beyond this, a CellInfo timestamp is treated as uninterpretable rather than
-    // trusted. Cell state turns over in seconds; a reading the modem claims is
-    // ten minutes old is a clock we should not reason from.
-    static final long MAX_MODEM_TIMESTAMP_AGE_MS = 10 * 60 * 1000L;
+    // Sanity rail on a CellInfo timestamp, not a statement about how fresh a
+    // reading ought to be. This was 10 minutes on the reasoning that cell state
+    // turns over in seconds — which the field data flatly contradicted: parked in
+    // stable coverage the modem holds one reading far longer, and the observed
+    // ages ran right up to 592s and stopped dead at the old ceiling, censoring
+    // 27% of readings. Those were the *most* latched ones, i.e. exactly the
+    // re-reads modem_reported_at exists to identify. An hour is a plausibility
+    // rail; a genuinely stale reading is informative, not suspect.
+    static final long MAX_MODEM_TIMESTAMP_AGE_MS = 60 * 60 * 1000L;
 
     // just the radio-side fields; the sampler adds gps + the ids on top.
     public static class Reading {

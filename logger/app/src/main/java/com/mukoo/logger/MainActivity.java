@@ -240,7 +240,14 @@ public class MainActivity extends Activity {
             requestPermissions(REQUEST_PERMS, REQ_PERMS);
             return;
         }
-        String sessionId = UUID.randomUUID().toString();
+        // Resume rather than replace: if a drive is still persisted as active
+        // (the service is running, or the process was killed mid-drive and the
+        // in-memory flag came back false), minting a fresh id here would split one
+        // drive into two sessions — or open a second drive alongside a live one.
+        String active = DriveSessionService.isActive(this)
+                ? DriveSessionService.activeSession(this)
+                : null;
+        String sessionId = active != null ? active : UUID.randomUUID().toString();
         Intent i = new Intent(this, DriveSessionService.class);
         i.putExtra(DriveSessionService.EXTRA_SESSION_ID, sessionId);
         startForegroundService(i);
@@ -330,7 +337,11 @@ public class MainActivity extends Activity {
     // reflect an active drive in the button/status when returning to the screen
     // (e.g. reopened mid-drive, or the service resumed after an OS restart).
     private void syncDrivingState() {
-        driving = DriveState.isDriving();
+        // Persisted state wins over the in-memory flag: DriveState is a static
+        // that comes back false in a fresh process, so after an OS kill mid-drive
+        // it would show "Start drive" while a drive is genuinely still active —
+        // and tapping it would open a second session over the top of the first.
+        driving = DriveState.isDriving() || DriveSessionService.isActive(this);
         toggle.setText(driving ? "Stop drive" : "Start drive");
         if (driving) {
             CharSequence s = statusView.getText();
