@@ -123,8 +123,14 @@ The evidence is published **aggregated to the carrier's own H3 claimed-coverage
 hexes** — [`verizon_claim_violations_by_hex.geojson`](verizon_claim_violations_by_hex.geojson):
 one feature per hex, carrying how many measurements fell inside it and how many
 came in below the filed minimum. Raw per-measurement GPS traces are deliberately
-kept local (gitignored), so the published data shows *which claimed cells failed,
-and by how much* without mapping individual drives. Regenerate with
+kept local (gitignored). What that buys, precisely: position is quantised to the
+carrier's own ~190 m cells, there are no timestamps, no point ids, and no
+per-point coordinates, so no individual reading can be recovered — and because
+every published figure is a rate or a mean rather than a count, the dwell
+pattern that would show where a vehicle sat still is gone too. What it does not
+buy: the driven corridors remain discernible from *which* cells appear at all.
+That is inherent to publishing where a claim failed, and it is the deliberate
+limit of what this file protects. Regenerate with
 [`docs/aggregate_violations_by_hex.py`](docs/aggregate_violations_by_hex.py).
 
 A hex is published only if it holds **at least three measurements** (155 of the
