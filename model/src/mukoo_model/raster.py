@@ -24,6 +24,11 @@ def load_grid_surface(path: Path, band: int = 1) -> tuple[np.ndarray, Grid]:
     NoData pixels come back as ``nan``. The reconstructed grid's cell size is
     taken from the raster's x pixel size; a non-square pixel would be unusual for
     our kriging output and is not specially handled.
+
+    The grid's ``support`` mask is recovered from where the band has data, so a
+    surface written by the exporter round-trips into an equivalent ``Grid``: a
+    consumer reading ``rsrp_kriging_stddev.tif`` masks exactly the cells the run
+    that produced it masked, without being told the radius.
     """
     with rasterio.open(Path(path)) as ds:
         band_data = ds.read(band).astype(np.float64)
@@ -43,5 +48,11 @@ def load_grid_surface(path: Path, band: int = 1) -> tuple[np.ndarray, Grid]:
     # GeoTIFF is north-up (row 0 = north); flip to south-up to match Grid.y.
     array = np.flipud(band_data)
 
-    grid = Grid(x=x, y=y, cell_m=cell_m, crs_epsg=int(crs_epsg))
+    grid = Grid(
+        x=x,
+        y=y,
+        cell_m=cell_m,
+        crs_epsg=int(crs_epsg),
+        support=~np.isnan(array),
+    )
     return array, grid

@@ -33,11 +33,51 @@ def test_nodata_becomes_nan(tmp_path, linear_cloud):
         make_grid(linear_cloud, cell_m=500.0)
     )
     arr = surface.stddev.copy()
-    arr[0, 0] = np.nan  # write_geotiff maps non-finite -> nodata sentinel
+    arr[0, 0] = np.nan  # write_geotiff writes non-finite cells as nodata
     path = write_geotiff(tmp_path / "std.tif", arr, surface, description="stddev")
 
     loaded, _ = load_grid_surface(path)
     # (0,0) south-up corresponds to the flipped corner on load; just assert a NaN
-    # round-trips somewhere rather than becoming the sentinel value.
+    # round-trips somewhere rather than becoming a stand-in number.
     assert np.isnan(loaded).sum() == 1
     assert not np.any(loaded == -9999.0)
+
+
+def test_unsupported_cells_roundtrip_as_nan_and_support(tmp_path, linear_cloud):
+    surface = OrdinaryKrigingModel(nlags=10).fit(linear_cloud).predict_grid(
+        make_grid(linear_cloud, cell_m=500.0)
+    )
+    arr = surface.stddev.copy()
+    # A contiguous block, the shape grid masking actually produces. Deliberately
+    # off-centre and non-square: a dropped or doubled flip would land the NaNs
+    # somewhere else, which a symmetric mask would hide.
+    unsupported = np.zeros(arr.shape, dtype=bool)
+    unsupported[:3, :5] = True
+    arr[unsupported] = np.nan
+    path = write_geotiff(tmp_path / "std.tif", arr, surface, description="stddev")
+
+    loaded, grid = load_grid_surface(path)
+
+    assert np.array_equal(np.isnan(loaded), unsupported)
+    assert grid.support is not None
+    # The point of the round trip: a consumer reading the raster masks exactly
+    # the cells the run that wrote it masked, without being told the radius.
+    assert np.array_equal(grid.support, ~unsupported)
+    assert np.allclose(loaded[~unsupported], arr[~unsupported], atol=1e-2)
+
+
+def test_fully_finite_surface_loads_fully_supported(tmp_path, linear_cloud):
+    # No masking was applied, so every cell is data and every cell is supported.
+    surface = OrdinaryKrigingModel(nlags=10).fit(linear_cloud).predict_grid(
+        make_grid(linear_cloud, cell_m=500.0)
+    )
+    path = write_geotiff(
+        tmp_path / "std.tif", surface.stddev, surface, description="stddev"
+    )
+
+    loaded, grid = load_grid_surface(path)
+
+    assert not np.isnan(loaded).any()
+    assert grid.support is not None
+    assert grid.support.shape == surface.grid.shape
+    assert grid.support.all()
