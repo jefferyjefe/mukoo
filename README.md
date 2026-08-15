@@ -62,7 +62,8 @@ The pipeline runs end to end, from a phone in a car to a claims verdict:
    into PostGIS, one row per reading.
 3. **Model** — ordinary/regression kriging interpolates RSRP across the survey
    area and produces a calibrated uncertainty surface, cross-validated honestly
-   (leave-one-drive-out and spatial-block, not just the flattering random fold).
+   (leave-one-drive-out and spatial-block, not just the flattering random fold),
+   and defined only where the measurements can actually speak for it.
 4. **Suggest** — an active-learning step reads the uncertainty surface and
    proposes where the *next* drive should go to shrink model uncertainty
    fastest, exported as a routable GPX tour.
@@ -155,6 +156,33 @@ This is handled at both ends:
   `independent_rows`, so the effective sample size is visible without running the
   model. On the current 3,130 rows: 2,703 re-reads, **427 independent** — the
   same figure the model's dedupe arrives at independently.
+
+### Grid support
+
+The kriging grid spans the bounding box of the measurements, which makes it
+only as tight as the furthest stray drive. The audit above covers a ~16 × 14 km
+corner, but one later session of 14 points ran **156 km** out of it and stretched
+the box to **162 × 76 km** — 553,860 cells at 150 m, where the *median* cell sits
+**18.7 km from the nearest measurement** against a fitted variogram range of
+3.8 km. Past that range kriging has nothing left to say and returns the global
+mean at maximum variance. That is not just wasted compute: the active-learning
+step ranks cells by uncertainty, so it aimed every suggested target at empty
+countryside nobody had driven to, and its road fetch for the full rectangle grew
+past 1.15 GB resident before the OS killed it — the 15-minute refresh agent
+failed on every tick.
+
+So cells further than one fitted variogram range from any measurement are
+dropped before prediction (`mukoo-krige --support-range-multiple`, default 1.0,
+or `MUKOO_SUPPORT_RANGE_MULTIPLE` for the refresh agent; `0` restores the
+full-rectangle surface). The radius comes from the variogram fitted on that run,
+not a constant, because the range *is* the distance past which the data stops
+informing anything — exactly so for an isotropic variogram, while under
+`MUKOO_ANISOTROPY` the circular mask reaches too far along the short axis by
+the scaling factor, keeping cells it could have dropped rather than dropping
+ones it should keep. On the current measurements it keeps **49,627 of 553,860
+cells** — the 9% the drives actually cover. The exported GeoTIFFs carry nodata
+everywhere else, so a map shows unsurveyed ground as absent rather than as an
+interpolation nobody should trust. See [model/README.md](model/README.md).
 
 ## Quick start
 
