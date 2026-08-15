@@ -99,13 +99,31 @@ The comparison is deliberately like-for-like:
   BDC H3 GeoPackage — we are grading the filing against itself, not against an
   external coverage model.
 
-**Honest limitations.** The interpolation and active-learning components apply
-*established* geostatistics (kriging, expected-variance-reduction sampling)
-rigorously — with honest cross-validation that currently shows the surface does
-not yet generalize to unseen roads — rather than claiming novel research. The
-contribution here is the end-to-end system and the audit it enables, not a new
-algorithm. And this is one carrier over one small rural area; it demonstrates
-the method and a real discrepancy, not a nationwide result.
+## Honest limitations
+
+**The finding does not depend on the model.** It is a point-in-polygon join:
+each measurement against the carrier's own filed minimum for the hex it landed
+in. No interpolation, no kriging, no assumption about what happens between
+readings. That result stands on its own, and it is reproduced through two
+independent stacks.
+
+**The kriging surface does not work yet.** Leave-one-drive-out cross-validation
+reports a negative R² and a kriging variance too small for the errors it actually
+makes — the model is wrong on roads it has not seen, and confident about it.
+Random k-fold looks respectable, which is precisely why it is not the headline:
+held-out points sit metres from training points on the same track. Nothing here
+should be read as a validated coverage prediction.
+
+**The fix is more coverage, not more modelling.** Nine drives over one corner of
+one county is not enough data for a variogram to generalise. That is what the
+active-learning step is for: `mukoo-suggest` ranks where the next drive would
+shrink uncertainty fastest and exports it as a routable tour. The plan is to
+drive those targets and watch the session-CV number come down. Until it does,
+the surface is scaffolding for the audit rather than a result of its own.
+
+**Scope.** One carrier, one filing, one small rural area. This demonstrates a
+method and a real discrepancy — not a nationwide result. No FCC challenge has
+been filed.
 
 ## Repository layout
 
