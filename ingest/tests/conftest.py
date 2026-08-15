@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -57,9 +58,13 @@ def database_url() -> str:
     finally:
         engine.dispose()
 
-    # Bring the schema up to head against the target database.
+    # Bring the schema up to head against the target database. Invoked through
+    # this interpreter rather than a bare "alembic" on PATH: pytest is often run
+    # as ".venv/bin/python -m pytest" without the venv activated, and then the
+    # bare name resolves to some other environment's alembic or to nothing at
+    # all — 23 collection errors that look like a database problem and are not.
     subprocess.run(
-        ["alembic", "upgrade", "head"],
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
         cwd=str(DB_DIR),
         env={**os.environ, "DATABASE_URL": url},
         check=True,

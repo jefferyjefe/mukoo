@@ -222,10 +222,40 @@ docker compose -f infra/docker-compose.yml up --build
 curl -s localhost:8000/healthz
 ```
 
-Reproduce the audit against a BDC filing:
+Nothing to configure and no database needed to see the modelling code work:
 
 ```bash
-pip install -e model
+python3 -m venv .venv && source .venv/bin/activate
+pip install --upgrade pip          # see note below — 21.x cannot do this install
+pip install -e 'model[dev]'
+make test-model                    # 181 tests, no database, ~70s
+```
+
+> **The pip upgrade is not optional.** These packages ship a `pyproject.toml`
+> and no `setup.py`, so an editable install needs PEP 660 support. The pip
+> bundled with macOS's system Python 3.9 (21.2.4) predates it and fails with
+> *"Directory cannot be installed in editable mode"*. Wheels exist for every
+> dependency including GDAL/rasterio, so with current pip the install takes
+> about ten seconds.
+
+The model suite runs entirely on synthetic point clouds with a known field, so
+it exercises the kriging, cross-validation, variogram, and routing code without
+any measurements. `make test` additionally runs the ingest suite, which does need
+a PostGIS test database — see [ingest/README.md](ingest/README.md).
+
+### Reproducing the audit
+
+**You cannot reproduce the published numbers from this repository alone**, and
+that is deliberate: the audit runs against the raw GPS-tagged measurements, which
+are kept local (see *Published data & privacy*). What is here is the pipeline
+that produced them, the hex-level evidence it output, and a second
+implementation that checks it. To run the audit you need your own measurements
+in PostGIS, plus the carrier's filing — a per-provider mobile H3 GeoPackage from
+the FCC's [Broadband Data Collection download
+site](https://broadbandmap.fcc.gov/data-download) (~430 MB for one state).
+
+```bash
+pip install -e 'model[viz]'        # [viz] adds matplotlib, needed by docs/ below
 export DATABASE_URL=postgresql+psycopg2://mukoo:mukoo@localhost:5432/mukoo
 mukoo-claims --gpkg ~/Downloads/bdc_13_131425_4GLTE_mobile_broadband_h3_*.gpkg
 # -> claims_report.json (summary, per-tier breakdown, worst point)          [local]
@@ -236,6 +266,11 @@ python docs/aggregate_violations_by_hex.py   # -> verizon_claim_violations_by_he
 python docs/make_coverage_map.py             # -> docs/coverage_map.png
 ```
 
+Those outputs are written to `$MUKOO_MODEL_OUTPUT_DIR`, default `~/mukoo` —
+**not** the checkout, unless you happen to have cloned there. Set it if you want
+them somewhere else; the `docs/` scripts read the report back from the same
+place.
+
 To develop and test the API against a local PostGIS, see
 [ingest/README.md](ingest/README.md); for the full modelling toolkit
 (`mukoo-krige` / `mukoo-suggest` / `mukoo-claims`), see
@@ -243,13 +278,20 @@ To develop and test the API against a local PostGIS, see
 
 ## Migrations
 
-`db/` is the schema's source of truth. Apply / create migrations with Alembic:
+`db/` is the schema's source of truth. Apply / create migrations with Alembic —
+which is not a dependency of either package, so install it first:
 
 ```bash
+pip install -r db/requirements.txt
 cd db
 DATABASE_URL=postgresql+psycopg2://mukoo:mukoo@localhost:5432/mukoo alembic upgrade head
 DATABASE_URL=… alembic revision -m "add something"   # new migration
 ```
+
+`alembic.ini` ships a deliberately non-working placeholder URL, so a missing
+`DATABASE_URL` fails immediately instead of quietly migrating the wrong
+database. The compose stack and the ingest test suite both apply migrations
+themselves; this is for running them by hand.
 
 ## License
 

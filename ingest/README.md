@@ -111,13 +111,25 @@ pip install -r db/requirements.txt    # migration runner
 docker compose -f infra/docker-compose.yml up -d db
 (cd db && DATABASE_URL=postgresql+psycopg2://mukoo:mukoo@localhost:5432/mukoo alembic upgrade head)
 
-# Run the tests (they apply migrations and hit a real PostGIS):
-DATABASE_URL=postgresql+psycopg2://mukoo:mukoo@localhost:5432/mukoo pytest ingest -v
+# Create the test database. The suite TRUNCATEs the measurements table around
+# every test, so it refuses to run against any database whose name does not end
+# in "_test" — pointing it at your dev database would destroy real field data.
+psql -h localhost -U mukoo -d postgres -c 'CREATE DATABASE mukoo_test'
+
+# Run the tests. They apply the db/ migrations to the test database themselves,
+# so it only has to exist — no separate `alembic upgrade` needed.
+TEST_DATABASE_URL=postgresql+psycopg2://mukoo:mukoo@localhost:5432/mukoo_test \
+  pytest ingest -v
 
 # Run the API locally:
 DATABASE_URL=postgresql+psycopg2://mukoo:mukoo@localhost:5432/mukoo \
   flask --app mukoo_ingest.wsgi:app run
 ```
+
+If `TEST_DATABASE_URL` is unset, the suite falls back to `DATABASE_URL`, sees a
+name not ending in `_test`, and **skips** rather than failing — you get
+`7 passed, 23 skipped` and no error. `make test` from the repo root sets the
+variable for you and runs both suites.
 
 ## Layout
 
