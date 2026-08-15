@@ -106,7 +106,17 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     print(f"Uncertainty surface: {result.stddev_source}")
-    print(f"Road network: {result.n_roads} OSM edges")
+    # Tile count matters because it is budgeted, and a run that hit the cap has
+    # to be distinguishable from one that did not: it fetched roads for only
+    # part of the candidate ground, so its ranking is against a partial network
+    # and the targets it left out were never considered at all.
+    tiles = f"from {result.n_road_tiles} tile(s)"
+    if result.n_road_tiles_wanted > result.n_road_tiles:
+        tiles += (
+            f" of {result.n_road_tiles_wanted} — TILE CAP HIT: targets were "
+            f"ranked against a partial road network"
+        )
+    print(f"Road network: {result.n_roads} OSM edges {tiles}")
     scoring = (
         f"EVR (range {result.range_m:.0f} m), weak-bias {args.weak_bias:g}"
         if result.range_m

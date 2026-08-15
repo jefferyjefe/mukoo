@@ -1,10 +1,15 @@
 """End-to-end route-suggestion pipeline: uncertainty surface -> roads -> targets.
 
 Reads the kriging standard-deviation surface (from the exported GeoTIFF, or by
-recomputing it from PostGIS), fetches the drivable road network for its bounding
-box from OSM (cached), ranks drivable high-uncertainty locations, and writes the
-suggestions as GeoJSON. The kriging model must have been run at least once (so
-the surface exists) unless ``recompute=True``.
+recomputing it from PostGIS), fetches the drivable road network around the cells
+that could be driven to (cached), ranks drivable high-uncertainty locations, and
+writes the suggestions as GeoJSON. The kriging model must have been run at least
+once (so the surface exists) unless ``recompute=True``.
+
+The road fetch deliberately does not follow the surface's footprint. That
+footprint is the survey's bounding box, which one long drive stretched to
+161 x 76 km of which almost nothing is supported; candidates are picked first
+(they need no roads) and OSM is then asked only for the tiles they occupy.
 """
 
 from __future__ import annotations
@@ -23,7 +28,7 @@ from .data import WGS84_EPSG, load_rsrp_points
 from .db import make_engine
 from .kriging import Grid, make_grid
 from .raster import load_grid_surface
-from .roads import fetch_roads
+from .roads import DEFAULT_MAX_TILES, fetch_roads_tiles, road_tiles
 from .route import apply_visit_order, write_gpx
 from .suggest import (
     DEFAULT_CANDIDATE_QUANTILE,
@@ -32,6 +37,7 @@ from .suggest import (
     DEFAULT_TOP_N,
     DEFAULT_WEAK_BIAS,
     Suggestion,
+    candidate_cells,
     suggest_targets,
     write_suggestions_geojson,
 )
@@ -45,6 +51,11 @@ class SuggestResult:
     n_roads: int
     stddev_source: str  # "geotiff:<path>" or "recomputed"
     range_m: Optional[float]  # variogram range used for EVR scoring, if known
+    n_road_tiles: int = 0  # OSM boxes actually fetched
+    # Boxes the candidate cells cover, before the fetch budget was applied.
+    # Larger than n_road_tiles means the run ranked its targets against only
+    # part of the road network, which a reader has to be able to see.
+    n_road_tiles_wanted: int = 0
 
 
 def bounds_lonlat_of_grid(grid: Grid) -> tuple:
@@ -70,11 +81,12 @@ def _recompute_surfaces(
     """(stddev, mean, grid, range_m) refit from PostGIS.
 
     Uses the same model the main pipeline would (config's kriging mode,
-    anisotropy, dead-zone floor, and run dedupe), so recomputed suggestions
-    match what ``mukoo-krige`` exports rather than silently reverting to plain
-    ordinary kriging.
+    anisotropy, dead-zone floor, run dedupe, and support masking), so recomputed
+    suggestions match what ``mukoo-krige`` exports rather than silently
+    reverting to plain ordinary kriging over the whole bounding box.
     """
-    from .pipeline import make_model_factory  # local: avoids import cycle risk
+    # local: avoids import cycle risk
+    from .pipeline import make_model_factory, support_radius_m
 
     engine = make_engine(config.database_url)
     cloud = load_rsrp_points(
@@ -92,7 +104,14 @@ def _recompute_surfaces(
         anisotropy_angle=config.anisotropy[1],
     )()
     model.fit(cloud)
-    surface = model.predict_grid(make_grid(cloud, cell_m=config.cell_metres))
+    # Fit first, then grid: the support radius is read off the fitted variogram,
+    # so there is nothing to mask against until the model exists.
+    grid = make_grid(
+        cloud,
+        cell_m=config.cell_metres,
+        support_radius_m=support_radius_m(model, config),
+    )
+    surface = model.predict_grid(grid)
     range_m = surface.variogram_params.get("range_m")
     return surface.stddev, surface.mean, surface.grid, range_m
 
@@ -145,10 +164,27 @@ def run_suggest(
         stddev, mean, grid, range_m = _recompute_surfaces(config, metric)
         source = "recomputed"
 
-    # 2. Roads for the surface's footprint (cached OSM fetch).
-    bounds = bounds_lonlat_of_grid(grid)
-    roads = fetch_roads(
-        bounds,
+    # 2. Roads, but only around the cells that can actually become targets.
+    #    Candidate selection needs no roads, so it goes first and bounds the
+    #    fetch: the surface's own footprint is 12,000 km² of mostly-unsupported
+    #    countryside, and asking OSM for all of it is what was costing 1.15 GB
+    #    and a SIGKILL every refresh tick. Most-uncertain first, so the tile
+    #    budget (if it ever bites) keeps the ground worth driving to.
+    cell_x, cell_y, cell_sigma = candidate_cells(
+        stddev, grid, candidate_quantile=candidate_quantile
+    )
+    order = np.argsort(cell_sigma)[::-1]
+    to_lonlat = Transformer.from_crs(grid.crs_epsg, WGS84_EPSG, always_xy=True)
+    lons, lats = to_lonlat.transform(cell_x[order], cell_y[order])
+    #    The cover is computed whole and the budget applied here, so a run that
+    #    exhausted it can say by how much: a truncated fetch ranks targets
+    #    against a partial road network and that is a caveat, not a normal run.
+    #    Only the fetching had to be bounded — the uncovered tail is a few
+    #    hundred 4-tuples even for the whole survey rectangle.
+    wanted_tiles = road_tiles(lons, lats, buffer_m=max_road_dist_m, max_tiles=None)
+    tiles = wanted_tiles[:DEFAULT_MAX_TILES]
+    roads = fetch_roads_tiles(
+        tiles,
         grid.crs_epsg,
         cache_dir=cache_dir,
         network_type=network_type,
@@ -187,6 +223,8 @@ def run_suggest(
         n_roads=len(roads),
         stddev_source=source,
         range_m=range_m,
+        n_road_tiles=len(tiles),
+        n_road_tiles_wanted=len(wanted_tiles),
     )
 
 
