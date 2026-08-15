@@ -4,9 +4,13 @@
   "properties": {
     "description": "Measurements vs Verizon's FCC-filed minimum signal, aggregated to the carrier's own H3 res-9 claimed-coverage hexes. One feature per hex that contained at least one below-claim measurement. Individual GPS points, timestamps, and per-point ids are intentionally omitted; the only coordinates are the FCC filing's fixed hex boundaries, so the drive path cannot be reconstructed. Full-precision point data stays local (see mukoo-claims).",
     "environment": 1,
-    "n_hexes": 184,
+    "min_measurements_per_hex": 3,
     "n_violations": 1673,
-    "n_measurements_in_claimed_hexes": 1681
+    "n_measurements_in_claimed_hexes": 1681,
+    "n_hexes_with_a_violation": 184,
+    "n_hexes": 155,
+    "n_violations_published": 1630,
+    "n_measurements_published": 1638
   },
   "features": [
     {
@@ -163,55 +167,6 @@
         "coordinates": [
           [
             [
-              -81.782108,
-              32.434422
-            ],
-            [
-              -81.784002,
-              32.434954
-            ],
-            [
-              -81.784511,
-              32.436713
-            ],
-            [
-              -81.783125,
-              32.437938
-            ],
-            [
-              -81.781231,
-              32.437405
-            ],
-            [
-              -81.780722,
-              32.435647
-            ],
-            [
-              -81.782108,
-              32.434422
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a70afffff",
-        "claimed_minsignal_dbm": -60,
-        "n_measurements": 14,
-        "n_violations": 14,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -101.6,
-        "worst_measured_dbm": -104.0,
-        "avg_gap_db": -41.57,
-        "worst_gap_db": -44.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
               -81.772077,
               32.405756
             ],
@@ -251,6 +206,55 @@
         "avg_measured_dbm": -99.5,
         "worst_measured_dbm": -104.0,
         "avg_gap_db": -39.5,
+        "worst_gap_db": -44.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.782108,
+              32.434422
+            ],
+            [
+              -81.784002,
+              32.434954
+            ],
+            [
+              -81.784511,
+              32.436713
+            ],
+            [
+              -81.783125,
+              32.437938
+            ],
+            [
+              -81.781231,
+              32.437405
+            ],
+            [
+              -81.780722,
+              32.435647
+            ],
+            [
+              -81.782108,
+              32.434422
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a70afffff",
+        "claimed_minsignal_dbm": -60,
+        "n_measurements": 14,
+        "n_violations": 14,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -101.6,
+        "worst_measured_dbm": -104.0,
+        "avg_gap_db": -41.57,
         "worst_gap_db": -44.0
       }
     },
@@ -310,55 +314,6 @@
         "coordinates": [
           [
             [
-              -81.766398,
-              32.404158
-            ],
-            [
-              -81.768291,
-              32.404691
-            ],
-            [
-              -81.768799,
-              32.406449
-            ],
-            [
-              -81.767414,
-              32.407675
-            ],
-            [
-              -81.765521,
-              32.407142
-            ],
-            [
-              -81.765013,
-              32.405384
-            ],
-            [
-              -81.766398,
-              32.404158
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a292fffff",
-        "claimed_minsignal_dbm": -70,
-        "n_measurements": 15,
-        "n_violations": 15,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -103.9,
-        "worst_measured_dbm": -113.0,
-        "avg_gap_db": -33.93,
-        "worst_gap_db": -43.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
               -81.802889,
               32.416034
             ],
@@ -398,6 +353,55 @@
         "avg_measured_dbm": -103.8,
         "worst_measured_dbm": -113.0,
         "avg_gap_db": -33.81,
+        "worst_gap_db": -43.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.766398,
+              32.404158
+            ],
+            [
+              -81.768291,
+              32.404691
+            ],
+            [
+              -81.768799,
+              32.406449
+            ],
+            [
+              -81.767414,
+              32.407675
+            ],
+            [
+              -81.765521,
+              32.407142
+            ],
+            [
+              -81.765013,
+              32.405384
+            ],
+            [
+              -81.766398,
+              32.404158
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a292fffff",
+        "claimed_minsignal_dbm": -70,
+        "n_measurements": 15,
+        "n_violations": 15,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -103.9,
+        "worst_measured_dbm": -113.0,
+        "avg_gap_db": -33.93,
         "worst_gap_db": -43.0
       }
     },
@@ -457,41 +461,139 @@
         "coordinates": [
           [
             [
-              -81.752825,
-              32.429411
+              -81.718758,
+              32.419813
             ],
             [
-              -81.754718,
-              32.429944
+              -81.72065,
+              32.420346
             ],
             [
-              -81.755227,
-              32.431702
+              -81.721157,
+              32.422104
             ],
             [
-              -81.753841,
-              32.432927
+              -81.719772,
+              32.423329
             ],
             [
-              -81.751948,
-              32.432394
+              -81.71788,
+              32.422795
             ],
             [
-              -81.75144,
-              32.430636
+              -81.717373,
+              32.421038
             ],
             [
-              -81.752825,
-              32.429411
+              -81.718758,
+              32.419813
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a728bffff",
+        "h3_res9_id": "8944d5a0887ffff",
+        "claimed_minsignal_dbm": -80,
+        "n_measurements": 3,
+        "n_violations": 3,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -119.0,
+        "worst_measured_dbm": -121.0,
+        "avg_gap_db": -39.0,
+        "worst_gap_db": -41.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.743868,
+              32.428503
+            ],
+            [
+              -81.745761,
+              32.429037
+            ],
+            [
+              -81.746269,
+              32.430795
+            ],
+            [
+              -81.744883,
+              32.43202
+            ],
+            [
+              -81.74299,
+              32.431486
+            ],
+            [
+              -81.742483,
+              32.429728
+            ],
+            [
+              -81.743868,
+              32.428503
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a72cbffff",
         "claimed_minsignal_dbm": -70,
         "n_measurements": 3,
         "n_violations": 3,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -111.0,
+        "worst_measured_dbm": -111.0,
+        "avg_gap_db": -41.0,
+        "worst_gap_db": -41.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.747146,
+              32.427812
+            ],
+            [
+              -81.749039,
+              32.428345
+            ],
+            [
+              -81.749547,
+              32.430103
+            ],
+            [
+              -81.748162,
+              32.431328
+            ],
+            [
+              -81.746269,
+              32.430795
+            ],
+            [
+              -81.745761,
+              32.429037
+            ],
+            [
+              -81.747146,
+              32.427812
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a72c3ffff",
+        "claimed_minsignal_dbm": -70,
+        "n_measurements": 4,
+        "n_violations": 4,
         "violation_share": 1.0,
         "avg_measured_dbm": -111.0,
         "worst_measured_dbm": -111.0,
@@ -555,6 +657,55 @@
         "coordinates": [
           [
             [
+              -81.752825,
+              32.429411
+            ],
+            [
+              -81.754718,
+              32.429944
+            ],
+            [
+              -81.755227,
+              32.431702
+            ],
+            [
+              -81.753841,
+              32.432927
+            ],
+            [
+              -81.751948,
+              32.432394
+            ],
+            [
+              -81.75144,
+              32.430636
+            ],
+            [
+              -81.752825,
+              32.429411
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a728bffff",
+        "claimed_minsignal_dbm": -70,
+        "n_measurements": 3,
+        "n_violations": 3,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -111.0,
+        "worst_measured_dbm": -111.0,
+        "avg_gap_db": -41.0,
+        "worst_gap_db": -41.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
               -81.76003,
               32.436285
             ],
@@ -604,55 +755,6 @@
         "coordinates": [
           [
             [
-              -81.743868,
-              32.428503
-            ],
-            [
-              -81.745761,
-              32.429037
-            ],
-            [
-              -81.746269,
-              32.430795
-            ],
-            [
-              -81.744883,
-              32.43202
-            ],
-            [
-              -81.74299,
-              32.431486
-            ],
-            [
-              -81.742483,
-              32.429728
-            ],
-            [
-              -81.743868,
-              32.428503
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a72cbffff",
-        "claimed_minsignal_dbm": -70,
-        "n_measurements": 3,
-        "n_violations": 3,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -111.0,
-        "worst_measured_dbm": -111.0,
-        "avg_gap_db": -41.0,
-        "worst_gap_db": -41.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
               -81.722035,
               32.419122
             ],
@@ -691,104 +793,6 @@
         "violation_share": 1.0,
         "avg_measured_dbm": -121.0,
         "worst_measured_dbm": -121.0,
-        "avg_gap_db": -41.0,
-        "worst_gap_db": -41.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.718758,
-              32.419813
-            ],
-            [
-              -81.72065,
-              32.420346
-            ],
-            [
-              -81.721157,
-              32.422104
-            ],
-            [
-              -81.719772,
-              32.423329
-            ],
-            [
-              -81.71788,
-              32.422795
-            ],
-            [
-              -81.717373,
-              32.421038
-            ],
-            [
-              -81.718758,
-              32.419813
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0887ffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 3,
-        "n_violations": 3,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -119.0,
-        "worst_measured_dbm": -121.0,
-        "avg_gap_db": -39.0,
-        "worst_gap_db": -41.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.747146,
-              32.427812
-            ],
-            [
-              -81.749039,
-              32.428345
-            ],
-            [
-              -81.749547,
-              32.430103
-            ],
-            [
-              -81.748162,
-              32.431328
-            ],
-            [
-              -81.746269,
-              32.430795
-            ],
-            [
-              -81.745761,
-              32.429037
-            ],
-            [
-              -81.747146,
-              32.427812
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a72c3ffff",
-        "claimed_minsignal_dbm": -70,
-        "n_measurements": 4,
-        "n_violations": 4,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -111.0,
-        "worst_measured_dbm": -111.0,
         "avg_gap_db": -41.0,
         "worst_gap_db": -41.0
       }
@@ -898,55 +902,6 @@
         "coordinates": [
           [
             [
-              -81.741698,
-              32.414972
-            ],
-            [
-              -81.743591,
-              32.415505
-            ],
-            [
-              -81.744099,
-              32.417263
-            ],
-            [
-              -81.742714,
-              32.418488
-            ],
-            [
-              -81.740821,
-              32.417955
-            ],
-            [
-              -81.740314,
-              32.416197
-            ],
-            [
-              -81.741698,
-              32.414972
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0d87ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 6,
-        "n_violations": 6,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -123.2,
-        "worst_measured_dbm": -126.0,
-        "avg_gap_db": -33.17,
-        "worst_gap_db": -36.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
               -81.739298,
               32.412681
             ],
@@ -986,6 +941,55 @@
         "avg_measured_dbm": -121.8,
         "worst_measured_dbm": -126.0,
         "avg_gap_db": -31.8,
+        "worst_gap_db": -36.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.741698,
+              32.414972
+            ],
+            [
+              -81.743591,
+              32.415505
+            ],
+            [
+              -81.744099,
+              32.417263
+            ],
+            [
+              -81.742714,
+              32.418488
+            ],
+            [
+              -81.740821,
+              32.417955
+            ],
+            [
+              -81.740314,
+              32.416197
+            ],
+            [
+              -81.741698,
+              32.414972
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a0d87ffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 6,
+        "n_violations": 6,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -123.2,
+        "worst_measured_dbm": -126.0,
+        "avg_gap_db": -33.17,
         "worst_gap_db": -36.0
       }
     },
@@ -1045,55 +1049,6 @@
         "coordinates": [
           [
             [
-              -81.752178,
-              32.421154
-            ],
-            [
-              -81.754071,
-              32.421687
-            ],
-            [
-              -81.75458,
-              32.423445
-            ],
-            [
-              -81.753194,
-              32.42467
-            ],
-            [
-              -81.751301,
-              32.424137
-            ],
-            [
-              -81.750793,
-              32.422379
-            ],
-            [
-              -81.752178,
-              32.421154
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a7663ffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 2,
-        "n_violations": 2,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -115.0,
-        "worst_measured_dbm": -115.0,
-        "avg_gap_db": -35.0,
-        "worst_gap_db": -35.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
               -81.755917,
               32.397978
             ],
@@ -1134,6 +1089,202 @@
         "worst_measured_dbm": -115.0,
         "avg_gap_db": -23.29,
         "worst_gap_db": -35.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.762243,
+              32.407835
+            ],
+            [
+              -81.764136,
+              32.408368
+            ],
+            [
+              -81.764644,
+              32.410126
+            ],
+            [
+              -81.763259,
+              32.411351
+            ],
+            [
+              -81.761366,
+              32.410819
+            ],
+            [
+              -81.760858,
+              32.40906
+            ],
+            [
+              -81.762243,
+              32.407835
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a7683ffff",
+        "claimed_minsignal_dbm": -70,
+        "n_measurements": 4,
+        "n_violations": 4,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -99.5,
+        "worst_measured_dbm": -104.0,
+        "avg_gap_db": -29.5,
+        "worst_gap_db": -34.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.75116,
+              32.35141
+            ],
+            [
+              -81.753052,
+              32.351942
+            ],
+            [
+              -81.75356,
+              32.353701
+            ],
+            [
+              -81.752176,
+              32.354927
+            ],
+            [
+              -81.750284,
+              32.354394
+            ],
+            [
+              -81.749776,
+              32.352636
+            ],
+            [
+              -81.75116,
+              32.35141
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a2cc7ffff",
+        "claimed_minsignal_dbm": -80,
+        "n_measurements": 5,
+        "n_violations": 5,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -109.4,
+        "worst_measured_dbm": -114.0,
+        "avg_gap_db": -29.4,
+        "worst_gap_db": -34.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.741333,
+              32.353491
+            ],
+            [
+              -81.743224,
+              32.354023
+            ],
+            [
+              -81.743732,
+              32.355781
+            ],
+            [
+              -81.742348,
+              32.357007
+            ],
+            [
+              -81.740456,
+              32.356475
+            ],
+            [
+              -81.739949,
+              32.354717
+            ],
+            [
+              -81.741333,
+              32.353491
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a2c5bffff",
+        "claimed_minsignal_dbm": -80,
+        "n_measurements": 8,
+        "n_violations": 8,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -106.0,
+        "worst_measured_dbm": -114.0,
+        "avg_gap_db": -26.0,
+        "worst_gap_db": -34.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.761784,
+              32.430318
+            ],
+            [
+              -81.763677,
+              32.430851
+            ],
+            [
+              -81.764186,
+              32.432609
+            ],
+            [
+              -81.7628,
+              32.433834
+            ],
+            [
+              -81.760907,
+              32.433301
+            ],
+            [
+              -81.760399,
+              32.431543
+            ],
+            [
+              -81.761784,
+              32.430318
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a704bffff",
+        "claimed_minsignal_dbm": -50,
+        "n_measurements": 6,
+        "n_violations": 6,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -84.0,
+        "worst_measured_dbm": -84.0,
+        "avg_gap_db": -34.0,
+        "worst_gap_db": -34.0
       }
     },
     {
@@ -1290,143 +1441,45 @@
         "coordinates": [
           [
             [
-              -81.75116,
-              32.35141
+              -81.745669,
+              32.380557
             ],
             [
-              -81.753052,
-              32.351942
+              -81.747561,
+              32.381089
             ],
             [
-              -81.75356,
-              32.353701
+              -81.748069,
+              32.382848
             ],
             [
-              -81.752176,
-              32.354927
+              -81.746685,
+              32.384073
             ],
             [
-              -81.750284,
-              32.354394
+              -81.744792,
+              32.38354
             ],
             [
-              -81.749776,
-              32.352636
+              -81.744285,
+              32.381782
             ],
             [
-              -81.75116,
-              32.35141
+              -81.745669,
+              32.380557
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a2cc7ffff",
+        "h3_res9_id": "8944d5a280fffff",
         "claimed_minsignal_dbm": -80,
-        "n_measurements": 5,
-        "n_violations": 5,
+        "n_measurements": 4,
+        "n_violations": 4,
         "violation_share": 1.0,
-        "avg_measured_dbm": -109.4,
+        "avg_measured_dbm": -109.5,
         "worst_measured_dbm": -114.0,
-        "avg_gap_db": -29.4,
-        "worst_gap_db": -34.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.761784,
-              32.430318
-            ],
-            [
-              -81.763677,
-              32.430851
-            ],
-            [
-              -81.764186,
-              32.432609
-            ],
-            [
-              -81.7628,
-              32.433834
-            ],
-            [
-              -81.760907,
-              32.433301
-            ],
-            [
-              -81.760399,
-              32.431543
-            ],
-            [
-              -81.761784,
-              32.430318
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a704bffff",
-        "claimed_minsignal_dbm": -50,
-        "n_measurements": 6,
-        "n_violations": 6,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -84.0,
-        "worst_measured_dbm": -84.0,
-        "avg_gap_db": -34.0,
-        "worst_gap_db": -34.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.775777,
-              32.424565
-            ],
-            [
-              -81.777671,
-              32.425097
-            ],
-            [
-              -81.778179,
-              32.426856
-            ],
-            [
-              -81.776794,
-              32.428081
-            ],
-            [
-              -81.7749,
-              32.427548
-            ],
-            [
-              -81.774391,
-              32.42579
-            ],
-            [
-              -81.775777,
-              32.424565
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a708bffff",
-        "claimed_minsignal_dbm": -70,
-        "n_measurements": 25,
-        "n_violations": 25,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -89.2,
-        "worst_measured_dbm": -104.0,
-        "avg_gap_db": -19.24,
+        "avg_gap_db": -29.5,
         "worst_gap_db": -34.0
       }
     },
@@ -1486,6 +1539,153 @@
         "coordinates": [
           [
             [
+              -81.775777,
+              32.424565
+            ],
+            [
+              -81.777671,
+              32.425097
+            ],
+            [
+              -81.778179,
+              32.426856
+            ],
+            [
+              -81.776794,
+              32.428081
+            ],
+            [
+              -81.7749,
+              32.427548
+            ],
+            [
+              -81.774391,
+              32.42579
+            ],
+            [
+              -81.775777,
+              32.424565
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a708bffff",
+        "claimed_minsignal_dbm": -70,
+        "n_measurements": 25,
+        "n_violations": 25,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -89.2,
+        "worst_measured_dbm": -104.0,
+        "avg_gap_db": -19.24,
+        "worst_gap_db": -34.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.76312,
+              32.404851
+            ],
+            [
+              -81.765013,
+              32.405384
+            ],
+            [
+              -81.765521,
+              32.407142
+            ],
+            [
+              -81.764136,
+              32.408368
+            ],
+            [
+              -81.762243,
+              32.407835
+            ],
+            [
+              -81.761735,
+              32.406077
+            ],
+            [
+              -81.76312,
+              32.404851
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a7693ffff",
+        "claimed_minsignal_dbm": -80,
+        "n_measurements": 49,
+        "n_violations": 49,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -101.8,
+        "worst_measured_dbm": -114.0,
+        "avg_gap_db": -21.8,
+        "worst_gap_db": -34.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.772954,
+              32.402772
+            ],
+            [
+              -81.774848,
+              32.403305
+            ],
+            [
+              -81.775356,
+              32.405063
+            ],
+            [
+              -81.773971,
+              32.406289
+            ],
+            [
+              -81.772077,
+              32.405756
+            ],
+            [
+              -81.771569,
+              32.403998
+            ],
+            [
+              -81.772954,
+              32.402772
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a74cbffff",
+        "claimed_minsignal_dbm": -70,
+        "n_measurements": 7,
+        "n_violations": 7,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -101.0,
+        "worst_measured_dbm": -104.0,
+        "avg_gap_db": -31.0,
+        "worst_gap_db": -34.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
               -81.781037,
               32.406661
             ],
@@ -1525,6 +1725,55 @@
         "avg_measured_dbm": -98.1,
         "worst_measured_dbm": -104.0,
         "avg_gap_db": -28.07,
+        "worst_gap_db": -34.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.765521,
+              32.407142
+            ],
+            [
+              -81.767414,
+              32.407675
+            ],
+            [
+              -81.767922,
+              32.409433
+            ],
+            [
+              -81.766537,
+              32.410659
+            ],
+            [
+              -81.764644,
+              32.410126
+            ],
+            [
+              -81.764136,
+              32.408368
+            ],
+            [
+              -81.765521,
+              32.407142
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a7697ffff",
+        "claimed_minsignal_dbm": -70,
+        "n_measurements": 12,
+        "n_violations": 12,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -98.3,
+        "worst_measured_dbm": -104.0,
+        "avg_gap_db": -28.33,
         "worst_gap_db": -34.0
       }
     },
@@ -1633,339 +1882,45 @@
         "coordinates": [
           [
             [
-              -81.772954,
-              32.402772
+              -81.73344,
+              32.380344
             ],
             [
-              -81.774848,
-              32.403305
+              -81.735332,
+              32.380877
             ],
             [
-              -81.775356,
-              32.405063
+              -81.73584,
+              32.382635
             ],
             [
-              -81.773971,
-              32.406289
+              -81.734455,
+              32.38386
             ],
             [
-              -81.772077,
-              32.405756
+              -81.732563,
+              32.383327
             ],
             [
-              -81.771569,
-              32.403998
+              -81.732056,
+              32.381569
             ],
             [
-              -81.772954,
-              32.402772
+              -81.73344,
+              32.380344
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a74cbffff",
-        "claimed_minsignal_dbm": -70,
-        "n_measurements": 7,
-        "n_violations": 7,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -101.0,
-        "worst_measured_dbm": -104.0,
-        "avg_gap_db": -31.0,
-        "worst_gap_db": -34.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.741333,
-              32.353491
-            ],
-            [
-              -81.743224,
-              32.354023
-            ],
-            [
-              -81.743732,
-              32.355781
-            ],
-            [
-              -81.742348,
-              32.357007
-            ],
-            [
-              -81.740456,
-              32.356475
-            ],
-            [
-              -81.739949,
-              32.354717
-            ],
-            [
-              -81.741333,
-              32.353491
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a2c5bffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 8,
-        "n_violations": 8,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -106.0,
-        "worst_measured_dbm": -114.0,
-        "avg_gap_db": -26.0,
-        "worst_gap_db": -34.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.762243,
-              32.407835
-            ],
-            [
-              -81.764136,
-              32.408368
-            ],
-            [
-              -81.764644,
-              32.410126
-            ],
-            [
-              -81.763259,
-              32.411351
-            ],
-            [
-              -81.761366,
-              32.410819
-            ],
-            [
-              -81.760858,
-              32.40906
-            ],
-            [
-              -81.762243,
-              32.407835
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a7683ffff",
-        "claimed_minsignal_dbm": -70,
+        "h3_res9_id": "8944d5a2ab3ffff",
+        "claimed_minsignal_dbm": -90,
         "n_measurements": 4,
         "n_violations": 4,
         "violation_share": 1.0,
-        "avg_measured_dbm": -99.5,
-        "worst_measured_dbm": -104.0,
-        "avg_gap_db": -29.5,
-        "worst_gap_db": -34.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.745669,
-              32.380557
-            ],
-            [
-              -81.747561,
-              32.381089
-            ],
-            [
-              -81.748069,
-              32.382848
-            ],
-            [
-              -81.746685,
-              32.384073
-            ],
-            [
-              -81.744792,
-              32.38354
-            ],
-            [
-              -81.744285,
-              32.381782
-            ],
-            [
-              -81.745669,
-              32.380557
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a280fffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 4,
-        "n_violations": 4,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -109.5,
-        "worst_measured_dbm": -114.0,
-        "avg_gap_db": -29.5,
-        "worst_gap_db": -34.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.76312,
-              32.404851
-            ],
-            [
-              -81.765013,
-              32.405384
-            ],
-            [
-              -81.765521,
-              32.407142
-            ],
-            [
-              -81.764136,
-              32.408368
-            ],
-            [
-              -81.762243,
-              32.407835
-            ],
-            [
-              -81.761735,
-              32.406077
-            ],
-            [
-              -81.76312,
-              32.404851
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a7693ffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 49,
-        "n_violations": 49,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -101.8,
-        "worst_measured_dbm": -114.0,
-        "avg_gap_db": -21.8,
-        "worst_gap_db": -34.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.765521,
-              32.407142
-            ],
-            [
-              -81.767414,
-              32.407675
-            ],
-            [
-              -81.767922,
-              32.409433
-            ],
-            [
-              -81.766537,
-              32.410659
-            ],
-            [
-              -81.764644,
-              32.410126
-            ],
-            [
-              -81.764136,
-              32.408368
-            ],
-            [
-              -81.765521,
-              32.407142
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a7697ffff",
-        "claimed_minsignal_dbm": -70,
-        "n_measurements": 12,
-        "n_violations": 12,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -98.3,
-        "worst_measured_dbm": -104.0,
-        "avg_gap_db": -28.33,
-        "worst_gap_db": -34.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.800486,
-              32.413743
-            ],
-            [
-              -81.80238,
-              32.414276
-            ],
-            [
-              -81.802889,
-              32.416034
-            ],
-            [
-              -81.801504,
-              32.41726
-            ],
-            [
-              -81.799609,
-              32.416728
-            ],
-            [
-              -81.7991,
-              32.414969
-            ],
-            [
-              -81.800486,
-              32.413743
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5b5b67ffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 14,
-        "n_violations": 14,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -103.6,
-        "worst_measured_dbm": -113.0,
-        "avg_gap_db": -23.57,
+        "avg_measured_dbm": -120.0,
+        "worst_measured_dbm": -123.0,
+        "avg_gap_db": -30.0,
         "worst_gap_db": -33.0
       }
     },
@@ -2025,6 +1980,55 @@
         "coordinates": [
           [
             [
+              -81.730164,
+              32.381036
+            ],
+            [
+              -81.732056,
+              32.381569
+            ],
+            [
+              -81.732563,
+              32.383327
+            ],
+            [
+              -81.731179,
+              32.384553
+            ],
+            [
+              -81.729287,
+              32.38402
+            ],
+            [
+              -81.72878,
+              32.382262
+            ],
+            [
+              -81.730164,
+              32.381036
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a2abbffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 4,
+        "n_violations": 4,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -123.0,
+        "worst_measured_dbm": -123.0,
+        "avg_gap_db": -33.0,
+        "worst_gap_db": -33.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
               -81.767465,
               32.431917
             ],
@@ -2074,143 +2078,45 @@
         "coordinates": [
           [
             [
-              -81.727765,
-              32.378746
+              -81.800486,
+              32.413743
             ],
             [
-              -81.729657,
-              32.379278
+              -81.80238,
+              32.414276
             ],
             [
-              -81.730164,
-              32.381036
+              -81.802889,
+              32.416034
             ],
             [
-              -81.72878,
-              32.382262
+              -81.801504,
+              32.41726
             ],
             [
-              -81.726888,
-              32.381729
+              -81.799609,
+              32.416728
             ],
             [
-              -81.726381,
-              32.379971
+              -81.7991,
+              32.414969
             ],
             [
-              -81.727765,
-              32.378746
+              -81.800486,
+              32.413743
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a2a8fffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 1,
-        "n_violations": 1,
+        "h3_res9_id": "8944d5b5b67ffff",
+        "claimed_minsignal_dbm": -80,
+        "n_measurements": 14,
+        "n_violations": 14,
         "violation_share": 1.0,
-        "avg_measured_dbm": -123.0,
-        "worst_measured_dbm": -123.0,
-        "avg_gap_db": -33.0,
-        "worst_gap_db": -33.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.73344,
-              32.380344
-            ],
-            [
-              -81.735332,
-              32.380877
-            ],
-            [
-              -81.73584,
-              32.382635
-            ],
-            [
-              -81.734455,
-              32.38386
-            ],
-            [
-              -81.732563,
-              32.383327
-            ],
-            [
-              -81.732056,
-              32.381569
-            ],
-            [
-              -81.73344,
-              32.380344
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a2ab3ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 4,
-        "n_violations": 4,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -120.0,
-        "worst_measured_dbm": -123.0,
-        "avg_gap_db": -30.0,
-        "worst_gap_db": -33.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.730164,
-              32.381036
-            ],
-            [
-              -81.732056,
-              32.381569
-            ],
-            [
-              -81.732563,
-              32.383327
-            ],
-            [
-              -81.731179,
-              32.384553
-            ],
-            [
-              -81.729287,
-              32.38402
-            ],
-            [
-              -81.72878,
-              32.382262
-            ],
-            [
-              -81.730164,
-              32.381036
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a2abbffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 4,
-        "n_violations": 4,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -123.0,
-        "worst_measured_dbm": -123.0,
-        "avg_gap_db": -33.0,
+        "avg_measured_dbm": -103.6,
+        "worst_measured_dbm": -113.0,
+        "avg_gap_db": -23.57,
         "worst_gap_db": -33.0
       }
     },
@@ -2319,153 +2225,6 @@
         "coordinates": [
           [
             [
-              -81.698286,
-              32.384972
-            ],
-            [
-              -81.700177,
-              32.385506
-            ],
-            [
-              -81.700683,
-              32.387263
-            ],
-            [
-              -81.699299,
-              32.388488
-            ],
-            [
-              -81.697408,
-              32.387955
-            ],
-            [
-              -81.696901,
-              32.386197
-            ],
-            [
-              -81.698286,
-              32.384972
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a011bffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 2,
-        "n_violations": 2,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -109.5,
-        "worst_measured_dbm": -122.0,
-        "avg_gap_db": -19.5,
-        "worst_gap_db": -32.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.700683,
-              32.387263
-            ],
-            [
-              -81.702574,
-              32.387797
-            ],
-            [
-              -81.703081,
-              32.389554
-            ],
-            [
-              -81.701696,
-              32.390779
-            ],
-            [
-              -81.699805,
-              32.390246
-            ],
-            [
-              -81.699299,
-              32.388488
-            ],
-            [
-              -81.700683,
-              32.387263
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0103ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 2,
-        "n_violations": 2,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -122.0,
-        "worst_measured_dbm": -122.0,
-        "avg_gap_db": -32.0,
-        "worst_gap_db": -32.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.667535,
-              32.374681
-            ],
-            [
-              -81.669425,
-              32.375215
-            ],
-            [
-              -81.669931,
-              32.376972
-            ],
-            [
-              -81.668547,
-              32.378196
-            ],
-            [
-              -81.666657,
-              32.377663
-            ],
-            [
-              -81.666152,
-              32.375905
-            ],
-            [
-              -81.667535,
-              32.374681
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a02bbffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 1,
-        "n_violations": 1,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -112.0,
-        "worst_measured_dbm": -112.0,
-        "avg_gap_db": -32.0,
-        "worst_gap_db": -32.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
               -81.740688,
               32.345232
             ],
@@ -2515,104 +2274,6 @@
         "coordinates": [
           [
             [
-              -81.735789,
-              32.424613
-            ],
-            [
-              -81.737681,
-              32.425146
-            ],
-            [
-              -81.738189,
-              32.426904
-            ],
-            [
-              -81.736804,
-              32.428129
-            ],
-            [
-              -81.734911,
-              32.427595
-            ],
-            [
-              -81.734404,
-              32.425837
-            ],
-            [
-              -81.735789,
-              32.424613
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0d3bffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 4,
-        "n_violations": 4,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -111.0,
-        "worst_measured_dbm": -111.0,
-        "avg_gap_db": -31.0,
-        "worst_gap_db": -31.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.739067,
-              32.423921
-            ],
-            [
-              -81.740959,
-              32.424454
-            ],
-            [
-              -81.741467,
-              32.426212
-            ],
-            [
-              -81.740082,
-              32.427437
-            ],
-            [
-              -81.738189,
-              32.426904
-            ],
-            [
-              -81.737681,
-              32.425146
-            ],
-            [
-              -81.739067,
-              32.423921
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0d33ffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 2,
-        "n_violations": 2,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -111.0,
-        "worst_measured_dbm": -111.0,
-        "avg_gap_db": -31.0,
-        "worst_gap_db": -31.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
               -81.755227,
               32.431702
             ],
@@ -2648,55 +2309,6 @@
         "claimed_minsignal_dbm": -80,
         "n_measurements": 5,
         "n_violations": 5,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -111.0,
-        "worst_measured_dbm": -111.0,
-        "avg_gap_db": -31.0,
-        "worst_gap_db": -31.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.738189,
-              32.426904
-            ],
-            [
-              -81.740082,
-              32.427437
-            ],
-            [
-              -81.74059,
-              32.429195
-            ],
-            [
-              -81.739204,
-              32.43042
-            ],
-            [
-              -81.737312,
-              32.429887
-            ],
-            [
-              -81.736804,
-              32.428129
-            ],
-            [
-              -81.738189,
-              32.426904
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0d23ffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 1,
-        "n_violations": 1,
         "violation_share": 1.0,
         "avg_measured_dbm": -111.0,
         "worst_measured_dbm": -111.0,
@@ -2760,90 +2372,41 @@
         "coordinates": [
           [
             [
-              -81.794803,
-              32.412146
-            ],
-            [
-              -81.796697,
-              32.412679
-            ],
-            [
-              -81.797206,
-              32.414437
-            ],
-            [
-              -81.795821,
-              32.415663
-            ],
-            [
-              -81.793926,
-              32.415131
-            ],
-            [
-              -81.793418,
-              32.413372
-            ],
-            [
-              -81.794803,
-              32.412146
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5b5b6bffff",
-        "claimed_minsignal_dbm": -70,
-        "n_measurements": 18,
-        "n_violations": 18,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -99.1,
-        "worst_measured_dbm": -101.0,
-        "avg_gap_db": -29.06,
-        "worst_gap_db": -31.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.733389,
-              32.422321
-            ],
-            [
-              -81.735281,
-              32.422855
-            ],
-            [
               -81.735789,
               32.424613
+            ],
+            [
+              -81.737681,
+              32.425146
+            ],
+            [
+              -81.738189,
+              32.426904
+            ],
+            [
+              -81.736804,
+              32.428129
+            ],
+            [
+              -81.734911,
+              32.427595
             ],
             [
               -81.734404,
               32.425837
             ],
             [
-              -81.732511,
-              32.425304
-            ],
-            [
-              -81.732004,
-              32.423546
-            ],
-            [
-              -81.733389,
-              32.422321
+              -81.735789,
+              32.424613
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a0d0fffff",
+        "h3_res9_id": "8944d5a0d3bffff",
         "claimed_minsignal_dbm": -80,
-        "n_measurements": 3,
-        "n_violations": 3,
+        "n_measurements": 4,
+        "n_violations": 4,
         "violation_share": 1.0,
         "avg_measured_dbm": -111.0,
         "worst_measured_dbm": -111.0,
@@ -2956,46 +2519,46 @@
         "coordinates": [
           [
             [
-              -81.71396,
-              32.415231
+              -81.733389,
+              32.422321
             ],
             [
-              -81.715852,
-              32.415764
+              -81.735281,
+              32.422855
             ],
             [
-              -81.716359,
-              32.417522
+              -81.735789,
+              32.424613
             ],
             [
-              -81.714974,
-              32.418746
+              -81.734404,
+              32.425837
             ],
             [
-              -81.713082,
-              32.418213
+              -81.732511,
+              32.425304
             ],
             [
-              -81.712575,
-              32.416455
+              -81.732004,
+              32.423546
             ],
             [
-              -81.71396,
-              32.415231
+              -81.733389,
+              32.422321
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a089bffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 13,
-        "n_violations": 13,
+        "h3_res9_id": "8944d5a0d0fffff",
+        "claimed_minsignal_dbm": -80,
+        "n_measurements": 3,
+        "n_violations": 3,
         "violation_share": 1.0,
-        "avg_measured_dbm": -114.2,
-        "worst_measured_dbm": -120.0,
-        "avg_gap_db": -24.23,
-        "worst_gap_db": -30.0
+        "avg_measured_dbm": -111.0,
+        "worst_measured_dbm": -111.0,
+        "avg_gap_db": -31.0,
+        "worst_gap_db": -31.0
       }
     },
     {
@@ -3005,46 +2568,46 @@
         "coordinates": [
           [
             [
-              -81.671449,
-              32.382245
+              -81.794803,
+              32.412146
             ],
             [
-              -81.673339,
-              32.382778
+              -81.796697,
+              32.412679
             ],
             [
-              -81.673845,
-              32.384536
+              -81.797206,
+              32.414437
             ],
             [
-              -81.67246,
-              32.38576
+              -81.795821,
+              32.415663
             ],
             [
-              -81.67057,
-              32.385227
+              -81.793926,
+              32.415131
             ],
             [
-              -81.670065,
-              32.383469
+              -81.793418,
+              32.413372
             ],
             [
-              -81.671449,
-              32.382245
+              -81.794803,
+              32.412146
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a03dbffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 8,
-        "n_violations": 8,
+        "h3_res9_id": "8944d5b5b6bffff",
+        "claimed_minsignal_dbm": -70,
+        "n_measurements": 18,
+        "n_violations": 18,
         "violation_share": 1.0,
-        "avg_measured_dbm": -115.5,
-        "worst_measured_dbm": -120.0,
-        "avg_gap_db": -25.5,
-        "worst_gap_db": -30.0
+        "avg_measured_dbm": -99.1,
+        "worst_measured_dbm": -101.0,
+        "avg_gap_db": -29.06,
+        "worst_gap_db": -31.0
       }
     },
     {
@@ -3054,45 +2617,45 @@
         "coordinates": [
           [
             [
-              -81.727944,
-              32.409483
+              -81.741102,
+              32.364733
             ],
             [
-              -81.729836,
-              32.410016
+              -81.742993,
+              32.365266
             ],
             [
-              -81.730344,
-              32.411774
+              -81.743501,
+              32.367024
             ],
             [
-              -81.728959,
-              32.412998
+              -81.742116,
+              32.36825
             ],
             [
-              -81.727067,
-              32.412465
+              -81.740225,
+              32.367717
             ],
             [
-              -81.726559,
-              32.410707
+              -81.739717,
+              32.365959
             ],
             [
-              -81.727944,
-              32.409483
+              -81.741102,
+              32.364733
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a0ddbffff",
+        "h3_res9_id": "8944d5a2ea7ffff",
         "claimed_minsignal_dbm": -90,
-        "n_measurements": 4,
-        "n_violations": 4,
+        "n_measurements": 6,
+        "n_violations": 6,
         "violation_share": 1.0,
-        "avg_measured_dbm": -120.0,
+        "avg_measured_dbm": -117.3,
         "worst_measured_dbm": -120.0,
-        "avg_gap_db": -30.0,
+        "avg_gap_db": -27.33,
         "worst_gap_db": -30.0
       }
     },
@@ -3152,6 +2715,104 @@
         "coordinates": [
           [
             [
+              -81.727944,
+              32.409483
+            ],
+            [
+              -81.729836,
+              32.410016
+            ],
+            [
+              -81.730344,
+              32.411774
+            ],
+            [
+              -81.728959,
+              32.412998
+            ],
+            [
+              -81.727067,
+              32.412465
+            ],
+            [
+              -81.726559,
+              32.410707
+            ],
+            [
+              -81.727944,
+              32.409483
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a0ddbffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 4,
+        "n_violations": 4,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -120.0,
+        "worst_measured_dbm": -120.0,
+        "avg_gap_db": -30.0,
+        "worst_gap_db": -30.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.71396,
+              32.415231
+            ],
+            [
+              -81.715852,
+              32.415764
+            ],
+            [
+              -81.716359,
+              32.417522
+            ],
+            [
+              -81.714974,
+              32.418746
+            ],
+            [
+              -81.713082,
+              32.418213
+            ],
+            [
+              -81.712575,
+              32.416455
+            ],
+            [
+              -81.71396,
+              32.415231
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a089bffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 13,
+        "n_violations": 13,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -114.2,
+        "worst_measured_dbm": -120.0,
+        "avg_gap_db": -24.23,
+        "worst_gap_db": -30.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
               -81.769867,
               32.434208
             ],
@@ -3201,45 +2862,45 @@
         "coordinates": [
           [
             [
-              -81.741102,
-              32.364733
+              -81.671449,
+              32.382245
             ],
             [
-              -81.742993,
-              32.365266
+              -81.673339,
+              32.382778
             ],
             [
-              -81.743501,
-              32.367024
+              -81.673845,
+              32.384536
             ],
             [
-              -81.742116,
-              32.36825
+              -81.67246,
+              32.38576
             ],
             [
-              -81.740225,
-              32.367717
+              -81.67057,
+              32.385227
             ],
             [
-              -81.739717,
-              32.365959
+              -81.670065,
+              32.383469
             ],
             [
-              -81.741102,
-              32.364733
+              -81.671449,
+              32.382245
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a2ea7ffff",
+        "h3_res9_id": "8944d5a03dbffff",
         "claimed_minsignal_dbm": -90,
-        "n_measurements": 6,
-        "n_violations": 6,
+        "n_measurements": 8,
+        "n_violations": 8,
         "violation_share": 1.0,
-        "avg_measured_dbm": -117.3,
+        "avg_measured_dbm": -115.5,
         "worst_measured_dbm": -120.0,
-        "avg_gap_db": -27.33,
+        "avg_gap_db": -25.5,
         "worst_gap_db": -30.0
       }
     },
@@ -3299,55 +2960,6 @@
         "coordinates": [
           [
             [
-              -81.76899,
-              32.437192
-            ],
-            [
-              -81.770884,
-              32.437724
-            ],
-            [
-              -81.771392,
-              32.439483
-            ],
-            [
-              -81.770007,
-              32.440708
-            ],
-            [
-              -81.768113,
-              32.440175
-            ],
-            [
-              -81.767605,
-              32.438417
-            ],
-            [
-              -81.76899,
-              32.437192
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a7063ffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 8,
-        "n_violations": 8,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -100.1,
-        "worst_measured_dbm": -109.0,
-        "avg_gap_db": -20.12,
-        "worst_gap_db": -29.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
               -81.724901,
               32.398935
             ],
@@ -3387,6 +2999,55 @@
         "avg_measured_dbm": -109.0,
         "worst_measured_dbm": -119.0,
         "avg_gap_db": -18.96,
+        "worst_gap_db": -29.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.76899,
+              32.437192
+            ],
+            [
+              -81.770884,
+              32.437724
+            ],
+            [
+              -81.771392,
+              32.439483
+            ],
+            [
+              -81.770007,
+              32.440708
+            ],
+            [
+              -81.768113,
+              32.440175
+            ],
+            [
+              -81.767605,
+              32.438417
+            ],
+            [
+              -81.76899,
+              32.437192
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a7063ffff",
+        "claimed_minsignal_dbm": -80,
+        "n_measurements": 8,
+        "n_violations": 8,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -100.1,
+        "worst_measured_dbm": -109.0,
+        "avg_gap_db": -20.12,
         "worst_gap_db": -29.0
       }
     },
@@ -3446,46 +3107,144 @@
         "coordinates": [
           [
             [
-              -81.713261,
-              32.292278
+              -81.749362,
+              32.399364
             ],
             [
-              -81.715151,
-              32.29281
+              -81.751254,
+              32.399896
             ],
             [
-              -81.715657,
-              32.294568
+              -81.751762,
+              32.401655
             ],
             [
-              -81.714274,
-              32.295794
+              -81.750377,
+              32.40288
             ],
             [
-              -81.712384,
-              32.295262
+              -81.748485,
+              32.402347
             ],
             [
-              -81.711878,
-              32.293504
+              -81.747977,
+              32.400589
             ],
             [
-              -81.713261,
-              32.292278
+              -81.749362,
+              32.399364
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5b1933ffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 1,
-        "n_violations": 1,
+        "h3_res9_id": "8944d5a2ba3ffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 14,
+        "n_violations": 14,
         "violation_share": 1.0,
-        "avg_measured_dbm": -109.0,
-        "worst_measured_dbm": -109.0,
-        "avg_gap_db": -29.0,
-        "worst_gap_db": -29.0
+        "avg_measured_dbm": -106.6,
+        "worst_measured_dbm": -118.0,
+        "avg_gap_db": -16.57,
+        "worst_gap_db": -28.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.748485,
+              32.402347
+            ],
+            [
+              -81.750377,
+              32.40288
+            ],
+            [
+              -81.750885,
+              32.404638
+            ],
+            [
+              -81.7495,
+              32.405863
+            ],
+            [
+              -81.747608,
+              32.405331
+            ],
+            [
+              -81.7471,
+              32.403572
+            ],
+            [
+              -81.748485,
+              32.402347
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a2bafffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 14,
+        "n_violations": 14,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -107.9,
+        "worst_measured_dbm": -118.0,
+        "avg_gap_db": -17.93,
+        "worst_gap_db": -28.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.711152,
+              32.393445
+            ],
+            [
+              -81.713044,
+              32.393978
+            ],
+            [
+              -81.713551,
+              32.395736
+            ],
+            [
+              -81.712166,
+              32.396961
+            ],
+            [
+              -81.710275,
+              32.396428
+            ],
+            [
+              -81.709768,
+              32.39467
+            ],
+            [
+              -81.711152,
+              32.393445
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a0cdbffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 73,
+        "n_violations": 73,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -106.0,
+        "worst_measured_dbm": -118.0,
+        "avg_gap_db": -16.01,
+        "worst_gap_db": -28.0
       }
     },
     {
@@ -3544,45 +3303,45 @@
         "coordinates": [
           [
             [
-              -81.749362,
-              32.399364
+              -81.707877,
+              32.394137
             ],
             [
-              -81.751254,
-              32.399896
+              -81.709768,
+              32.39467
             ],
             [
-              -81.751762,
-              32.401655
+              -81.710275,
+              32.396428
             ],
             [
-              -81.750377,
-              32.40288
+              -81.70889,
+              32.397652
             ],
             [
-              -81.748485,
-              32.402347
+              -81.706999,
+              32.397119
             ],
             [
-              -81.747977,
-              32.400589
+              -81.706492,
+              32.395361
             ],
             [
-              -81.749362,
-              32.399364
+              -81.707877,
+              32.394137
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a2ba3ffff",
+        "h3_res9_id": "8944d5a0137ffff",
         "claimed_minsignal_dbm": -90,
-        "n_measurements": 14,
-        "n_violations": 14,
+        "n_measurements": 55,
+        "n_violations": 55,
         "violation_share": 1.0,
-        "avg_measured_dbm": -106.6,
+        "avg_measured_dbm": -108.0,
         "worst_measured_dbm": -118.0,
-        "avg_gap_db": -16.57,
+        "avg_gap_db": -18.04,
         "worst_gap_db": -28.0
       }
     },
@@ -3691,290 +3450,45 @@
         "coordinates": [
           [
             [
-              -81.748485,
-              32.402347
+              -81.674083,
+              32.3733
             ],
             [
-              -81.750377,
-              32.40288
+              -81.675973,
+              32.373833
             ],
             [
-              -81.750885,
-              32.404638
+              -81.676479,
+              32.375591
             ],
             [
-              -81.7495,
-              32.405863
+              -81.675095,
+              32.376815
             ],
             [
-              -81.747608,
-              32.405331
+              -81.673205,
+              32.376281
             ],
             [
-              -81.7471,
-              32.403572
+              -81.672699,
+              32.374524
             ],
             [
-              -81.748485,
-              32.402347
+              -81.674083,
+              32.3733
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a2bafffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 14,
-        "n_violations": 14,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -107.9,
-        "worst_measured_dbm": -118.0,
-        "avg_gap_db": -17.93,
-        "worst_gap_db": -28.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.707877,
-              32.394137
-            ],
-            [
-              -81.709768,
-              32.39467
-            ],
-            [
-              -81.710275,
-              32.396428
-            ],
-            [
-              -81.70889,
-              32.397652
-            ],
-            [
-              -81.706999,
-              32.397119
-            ],
-            [
-              -81.706492,
-              32.395361
-            ],
-            [
-              -81.707877,
-              32.394137
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0137ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 55,
-        "n_violations": 55,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -108.0,
-        "worst_measured_dbm": -118.0,
-        "avg_gap_db": -18.04,
-        "worst_gap_db": -28.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.711152,
-              32.393445
-            ],
-            [
-              -81.713044,
-              32.393978
-            ],
-            [
-              -81.713551,
-              32.395736
-            ],
-            [
-              -81.712166,
-              32.396961
-            ],
-            [
-              -81.710275,
-              32.396428
-            ],
-            [
-              -81.709768,
-              32.39467
-            ],
-            [
-              -81.711152,
-              32.393445
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0cdbffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 73,
-        "n_violations": 73,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -106.0,
-        "worst_measured_dbm": -118.0,
-        "avg_gap_db": -16.01,
-        "worst_gap_db": -28.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.74193,
-              32.403732
-            ],
-            [
-              -81.743822,
-              32.404265
-            ],
-            [
-              -81.74433,
-              32.406023
-            ],
-            [
-              -81.742945,
-              32.407248
-            ],
-            [
-              -81.741053,
-              32.406715
-            ],
-            [
-              -81.740545,
-              32.404957
-            ],
-            [
-              -81.74193,
-              32.403732
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a2b3bffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 16,
-        "n_violations": 16,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -106.4,
-        "worst_measured_dbm": -117.0,
-        "avg_gap_db": -16.38,
-        "worst_gap_db": -27.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.736717,
-              32.379651
-            ],
-            [
-              -81.738609,
-              32.380184
-            ],
-            [
-              -81.739116,
-              32.381942
-            ],
-            [
-              -81.737732,
-              32.383168
-            ],
-            [
-              -81.73584,
-              32.382635
-            ],
-            [
-              -81.735332,
-              32.380877
-            ],
-            [
-              -81.736717,
-              32.379651
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a284fffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 5,
-        "n_violations": 5,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -117.0,
-        "worst_measured_dbm": -117.0,
-        "avg_gap_db": -27.0,
-        "worst_gap_db": -27.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.80354,
-              32.424294
-            ],
-            [
-              -81.805435,
-              32.424827
-            ],
-            [
-              -81.805944,
-              32.426585
-            ],
-            [
-              -81.804559,
-              32.427811
-            ],
-            [
-              -81.802664,
-              32.427279
-            ],
-            [
-              -81.802155,
-              32.42552
-            ],
-            [
-              -81.80354,
-              32.424294
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a75bbffff",
+        "h3_res9_id": "8944d5a004fffff",
         "claimed_minsignal_dbm": -80,
-        "n_measurements": 8,
-        "n_violations": 8,
+        "n_measurements": 6,
+        "n_violations": 6,
         "violation_share": 1.0,
-        "avg_measured_dbm": -103.2,
+        "avg_measured_dbm": -103.5,
         "worst_measured_dbm": -107.0,
-        "avg_gap_db": -23.25,
+        "avg_gap_db": -23.5,
         "worst_gap_db": -27.0
       }
     },
@@ -4034,143 +3548,45 @@
         "coordinates": [
           [
             [
-              -81.735246,
-              32.332392
+              -81.670809,
+              32.37399
             ],
             [
-              -81.737137,
-              32.332925
+              -81.672699,
+              32.374524
             ],
             [
-              -81.737644,
-              32.334683
+              -81.673205,
+              32.376281
             ],
             [
-              -81.73626,
-              32.335909
+              -81.671821,
+              32.377506
             ],
             [
-              -81.734369,
-              32.335377
+              -81.669931,
+              32.376972
             ],
             [
-              -81.733862,
-              32.333618
+              -81.669425,
+              32.375215
             ],
             [
-              -81.735246,
-              32.332392
+              -81.670809,
+              32.37399
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a21d7ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 8,
-        "n_violations": 8,
+        "h3_res9_id": "8944d5a02b3ffff",
+        "claimed_minsignal_dbm": -80,
+        "n_measurements": 3,
+        "n_violations": 3,
         "violation_share": 1.0,
-        "avg_measured_dbm": -111.0,
-        "worst_measured_dbm": -117.0,
-        "avg_gap_db": -21.0,
-        "worst_gap_db": -27.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.737644,
-              32.334683
-            ],
-            [
-              -81.739535,
-              32.335215
-            ],
-            [
-              -81.740042,
-              32.336973
-            ],
-            [
-              -81.738658,
-              32.338199
-            ],
-            [
-              -81.736767,
-              32.337667
-            ],
-            [
-              -81.73626,
-              32.335909
-            ],
-            [
-              -81.737644,
-              32.334683
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a218bffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 9,
-        "n_violations": 9,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -112.6,
-        "worst_measured_dbm": -117.0,
-        "avg_gap_db": -22.56,
-        "worst_gap_db": -27.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.736767,
-              32.337667
-            ],
-            [
-              -81.738658,
-              32.338199
-            ],
-            [
-              -81.739166,
-              32.339958
-            ],
-            [
-              -81.737782,
-              32.341184
-            ],
-            [
-              -81.73589,
-              32.340651
-            ],
-            [
-              -81.735383,
-              32.338893
-            ],
-            [
-              -81.736767,
-              32.337667
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a2113ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 6,
-        "n_violations": 6,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -109.7,
-        "worst_measured_dbm": -117.0,
-        "avg_gap_db": -19.67,
+        "avg_measured_dbm": -107.0,
+        "worst_measured_dbm": -107.0,
+        "avg_gap_db": -27.0,
         "worst_gap_db": -27.0
       }
     },
@@ -4230,6 +3646,300 @@
         "coordinates": [
           [
             [
+              -81.735246,
+              32.332392
+            ],
+            [
+              -81.737137,
+              32.332925
+            ],
+            [
+              -81.737644,
+              32.334683
+            ],
+            [
+              -81.73626,
+              32.335909
+            ],
+            [
+              -81.734369,
+              32.335377
+            ],
+            [
+              -81.733862,
+              32.333618
+            ],
+            [
+              -81.735246,
+              32.332392
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a21d7ffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 8,
+        "n_violations": 8,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -111.0,
+        "worst_measured_dbm": -117.0,
+        "avg_gap_db": -21.0,
+        "worst_gap_db": -27.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.736767,
+              32.337667
+            ],
+            [
+              -81.738658,
+              32.338199
+            ],
+            [
+              -81.739166,
+              32.339958
+            ],
+            [
+              -81.737782,
+              32.341184
+            ],
+            [
+              -81.73589,
+              32.340651
+            ],
+            [
+              -81.735383,
+              32.338893
+            ],
+            [
+              -81.736767,
+              32.337667
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a2113ffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 6,
+        "n_violations": 6,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -109.7,
+        "worst_measured_dbm": -117.0,
+        "avg_gap_db": -19.67,
+        "worst_gap_db": -27.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.74193,
+              32.403732
+            ],
+            [
+              -81.743822,
+              32.404265
+            ],
+            [
+              -81.74433,
+              32.406023
+            ],
+            [
+              -81.742945,
+              32.407248
+            ],
+            [
+              -81.741053,
+              32.406715
+            ],
+            [
+              -81.740545,
+              32.404957
+            ],
+            [
+              -81.74193,
+              32.403732
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a2b3bffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 16,
+        "n_violations": 16,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -106.4,
+        "worst_measured_dbm": -117.0,
+        "avg_gap_db": -16.38,
+        "worst_gap_db": -27.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.80354,
+              32.424294
+            ],
+            [
+              -81.805435,
+              32.424827
+            ],
+            [
+              -81.805944,
+              32.426585
+            ],
+            [
+              -81.804559,
+              32.427811
+            ],
+            [
+              -81.802664,
+              32.427279
+            ],
+            [
+              -81.802155,
+              32.42552
+            ],
+            [
+              -81.80354,
+              32.424294
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a75bbffff",
+        "claimed_minsignal_dbm": -80,
+        "n_measurements": 8,
+        "n_violations": 8,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -103.2,
+        "worst_measured_dbm": -107.0,
+        "avg_gap_db": -23.25,
+        "worst_gap_db": -27.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.736717,
+              32.379651
+            ],
+            [
+              -81.738609,
+              32.380184
+            ],
+            [
+              -81.739116,
+              32.381942
+            ],
+            [
+              -81.737732,
+              32.383168
+            ],
+            [
+              -81.73584,
+              32.382635
+            ],
+            [
+              -81.735332,
+              32.380877
+            ],
+            [
+              -81.736717,
+              32.379651
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a284fffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 5,
+        "n_violations": 5,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -117.0,
+        "worst_measured_dbm": -117.0,
+        "avg_gap_db": -27.0,
+        "worst_gap_db": -27.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.737644,
+              32.334683
+            ],
+            [
+              -81.739535,
+              32.335215
+            ],
+            [
+              -81.740042,
+              32.336973
+            ],
+            [
+              -81.738658,
+              32.338199
+            ],
+            [
+              -81.736767,
+              32.337667
+            ],
+            [
+              -81.73626,
+              32.335909
+            ],
+            [
+              -81.737644,
+              32.334683
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a218bffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 9,
+        "n_violations": 9,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -112.6,
+        "worst_measured_dbm": -117.0,
+        "avg_gap_db": -22.56,
+        "worst_gap_db": -27.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
               -81.802664,
               32.427279
             ],
@@ -4279,143 +3989,45 @@
         "coordinates": [
           [
             [
-              -81.670809,
-              32.37399
+              -81.759382,
+              32.428027
             ],
             [
-              -81.672699,
-              32.374524
+              -81.761276,
+              32.42856
             ],
             [
-              -81.673205,
-              32.376281
-            ],
-            [
-              -81.671821,
-              32.377506
-            ],
-            [
-              -81.669931,
-              32.376972
-            ],
-            [
-              -81.669425,
-              32.375215
-            ],
-            [
-              -81.670809,
-              32.37399
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a02b3ffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 3,
-        "n_violations": 3,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -107.0,
-        "worst_measured_dbm": -107.0,
-        "avg_gap_db": -27.0,
-        "worst_gap_db": -27.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.674083,
-              32.3733
-            ],
-            [
-              -81.675973,
-              32.373833
-            ],
-            [
-              -81.676479,
-              32.375591
-            ],
-            [
-              -81.675095,
-              32.376815
-            ],
-            [
-              -81.673205,
-              32.376281
-            ],
-            [
-              -81.672699,
-              32.374524
-            ],
-            [
-              -81.674083,
-              32.3733
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a004fffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 6,
-        "n_violations": 6,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -103.5,
-        "worst_measured_dbm": -107.0,
-        "avg_gap_db": -23.5,
-        "worst_gap_db": -27.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.758505,
-              32.43101
+              -81.761784,
+              32.430318
             ],
             [
               -81.760399,
               32.431543
             ],
             [
-              -81.760907,
-              32.433301
-            ],
-            [
-              -81.759522,
-              32.434526
-            ],
-            [
-              -81.757628,
-              32.433993
-            ],
-            [
-              -81.75712,
-              32.432235
-            ],
-            [
               -81.758505,
               32.43101
+            ],
+            [
+              -81.757997,
+              32.429252
+            ],
+            [
+              -81.759382,
+              32.428027
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a7287ffff",
+        "h3_res9_id": "8944d5a7297ffff",
         "claimed_minsignal_dbm": -60,
-        "n_measurements": 2,
-        "n_violations": 2,
+        "n_measurements": 5,
+        "n_violations": 5,
         "violation_share": 1.0,
-        "avg_measured_dbm": -86.0,
+        "avg_measured_dbm": -85.6,
         "worst_measured_dbm": -86.0,
-        "avg_gap_db": -26.0,
+        "avg_gap_db": -25.6,
         "worst_gap_db": -26.0
       }
     },
@@ -4475,55 +4087,6 @@
         "coordinates": [
           [
             [
-              -81.759382,
-              32.428027
-            ],
-            [
-              -81.761276,
-              32.42856
-            ],
-            [
-              -81.761784,
-              32.430318
-            ],
-            [
-              -81.760399,
-              32.431543
-            ],
-            [
-              -81.758505,
-              32.43101
-            ],
-            [
-              -81.757997,
-              32.429252
-            ],
-            [
-              -81.759382,
-              32.428027
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a7297ffff",
-        "claimed_minsignal_dbm": -60,
-        "n_measurements": 5,
-        "n_violations": 5,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -85.6,
-        "worst_measured_dbm": -86.0,
-        "avg_gap_db": -25.6,
-        "worst_gap_db": -26.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
               -81.74327,
               32.378266
             ],
@@ -4573,45 +4136,143 @@
         "coordinates": [
           [
             [
-              -81.702439,
-              32.381298
+              -81.7489,
+              32.421846
             ],
             [
-              -81.704329,
-              32.381832
+              -81.750793,
+              32.422379
             ],
             [
-              -81.704836,
-              32.383589
+              -81.751301,
+              32.424137
             ],
             [
-              -81.703452,
-              32.384814
+              -81.749916,
+              32.425362
             ],
             [
-              -81.701561,
-              32.384281
+              -81.748023,
+              32.424829
             ],
             [
-              -81.701054,
-              32.382523
+              -81.747515,
+              32.423071
             ],
             [
-              -81.702439,
-              32.381298
+              -81.7489,
+              32.421846
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a018bffff",
+        "h3_res9_id": "8944d5a766bffff",
         "claimed_minsignal_dbm": -90,
         "n_measurements": 4,
         "n_violations": 4,
         "violation_share": 1.0,
-        "avg_measured_dbm": -111.2,
+        "avg_measured_dbm": -114.0,
         "worst_measured_dbm": -115.0,
-        "avg_gap_db": -21.25,
+        "avg_gap_db": -24.0,
+        "worst_gap_db": -25.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.758317,
+              32.400269
+            ],
+            [
+              -81.76021,
+              32.400802
+            ],
+            [
+              -81.760718,
+              32.40256
+            ],
+            [
+              -81.759333,
+              32.403786
+            ],
+            [
+              -81.757441,
+              32.403253
+            ],
+            [
+              -81.756933,
+              32.401495
+            ],
+            [
+              -81.758317,
+              32.400269
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a2963ffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 21,
+        "n_violations": 21,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -104.7,
+        "worst_measured_dbm": -115.0,
+        "avg_gap_db": -14.71,
+        "worst_gap_db": -25.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.673845,
+              32.384536
+            ],
+            [
+              -81.675735,
+              32.38507
+            ],
+            [
+              -81.676241,
+              32.386827
+            ],
+            [
+              -81.674857,
+              32.388051
+            ],
+            [
+              -81.672966,
+              32.387518
+            ],
+            [
+              -81.67246,
+              32.38576
+            ],
+            [
+              -81.673845,
+              32.384536
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a03c3ffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 5,
+        "n_violations": 5,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -112.6,
+        "worst_measured_dbm": -115.0,
+        "avg_gap_db": -22.6,
         "worst_gap_db": -25.0
       }
     },
@@ -4671,104 +4332,6 @@
         "coordinates": [
           [
             [
-              -81.717704,
-              32.392062
-            ],
-            [
-              -81.719596,
-              32.392595
-            ],
-            [
-              -81.720103,
-              32.394353
-            ],
-            [
-              -81.718718,
-              32.395578
-            ],
-            [
-              -81.716827,
-              32.395045
-            ],
-            [
-              -81.71632,
-              32.393287
-            ],
-            [
-              -81.717704,
-              32.392062
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a2a6fffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 30,
-        "n_violations": 30,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -109.0,
-        "worst_measured_dbm": -115.0,
-        "avg_gap_db": -19.03,
-        "worst_gap_db": -25.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.696766,
-              32.379699
-            ],
-            [
-              -81.698657,
-              32.380232
-            ],
-            [
-              -81.699163,
-              32.38199
-            ],
-            [
-              -81.697779,
-              32.383215
-            ],
-            [
-              -81.695888,
-              32.382681
-            ],
-            [
-              -81.695382,
-              32.380924
-            ],
-            [
-              -81.696766,
-              32.379699
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a01c3ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 1,
-        "n_violations": 1,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -115.0,
-        "worst_measured_dbm": -115.0,
-        "avg_gap_db": -25.0,
-        "worst_gap_db": -25.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
               -81.767046,
               32.412417
             ],
@@ -4818,45 +4381,94 @@
         "coordinates": [
           [
             [
-              -81.758317,
-              32.400269
+              -81.716359,
+              32.417522
             ],
             [
-              -81.76021,
-              32.400802
+              -81.718251,
+              32.418055
             ],
             [
-              -81.760718,
-              32.40256
+              -81.718758,
+              32.419813
             ],
             [
-              -81.759333,
-              32.403786
+              -81.717373,
+              32.421038
             ],
             [
-              -81.757441,
-              32.403253
+              -81.715481,
+              32.420504
             ],
             [
-              -81.756933,
-              32.401495
+              -81.714974,
+              32.418746
             ],
             [
-              -81.758317,
-              32.400269
+              -81.716359,
+              32.417522
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a2963ffff",
+        "h3_res9_id": "8944d5a0883ffff",
         "claimed_minsignal_dbm": -90,
-        "n_measurements": 21,
-        "n_violations": 21,
+        "n_measurements": 4,
+        "n_violations": 4,
         "violation_share": 1.0,
-        "avg_measured_dbm": -104.7,
+        "avg_measured_dbm": -115.0,
         "worst_measured_dbm": -115.0,
-        "avg_gap_db": -14.71,
+        "avg_gap_db": -25.0,
+        "worst_gap_db": -25.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.702439,
+              32.381298
+            ],
+            [
+              -81.704329,
+              32.381832
+            ],
+            [
+              -81.704836,
+              32.383589
+            ],
+            [
+              -81.703452,
+              32.384814
+            ],
+            [
+              -81.701561,
+              32.384281
+            ],
+            [
+              -81.701054,
+              32.382523
+            ],
+            [
+              -81.702439,
+              32.381298
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a018bffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 4,
+        "n_violations": 4,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -111.2,
+        "worst_measured_dbm": -115.0,
+        "avg_gap_db": -21.25,
         "worst_gap_db": -25.0
       }
     },
@@ -4965,55 +4577,6 @@
         "coordinates": [
           [
             [
-              -81.751301,
-              32.424137
-            ],
-            [
-              -81.753194,
-              32.42467
-            ],
-            [
-              -81.753702,
-              32.426428
-            ],
-            [
-              -81.752317,
-              32.427653
-            ],
-            [
-              -81.750424,
-              32.42712
-            ],
-            [
-              -81.749916,
-              32.425362
-            ],
-            [
-              -81.751301,
-              32.424137
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a766fffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 9,
-        "n_violations": 9,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -102.0,
-        "worst_measured_dbm": -115.0,
-        "avg_gap_db": -12.0,
-        "worst_gap_db": -25.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
               -81.694369,
               32.377408
             ],
@@ -5063,45 +4626,94 @@
         "coordinates": [
           [
             [
-              -81.673845,
-              32.384536
+              -81.717704,
+              32.392062
             ],
             [
-              -81.675735,
-              32.38507
+              -81.719596,
+              32.392595
             ],
             [
-              -81.676241,
-              32.386827
+              -81.720103,
+              32.394353
             ],
             [
-              -81.674857,
-              32.388051
+              -81.718718,
+              32.395578
             ],
             [
-              -81.672966,
-              32.387518
+              -81.716827,
+              32.395045
             ],
             [
-              -81.67246,
-              32.38576
+              -81.71632,
+              32.393287
             ],
             [
-              -81.673845,
-              32.384536
+              -81.717704,
+              32.392062
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a03c3ffff",
+        "h3_res9_id": "8944d5a2a6fffff",
         "claimed_minsignal_dbm": -90,
-        "n_measurements": 5,
-        "n_violations": 5,
+        "n_measurements": 30,
+        "n_violations": 30,
         "violation_share": 1.0,
-        "avg_measured_dbm": -112.6,
+        "avg_measured_dbm": -109.0,
         "worst_measured_dbm": -115.0,
-        "avg_gap_db": -22.6,
+        "avg_gap_db": -19.03,
+        "worst_gap_db": -25.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.751301,
+              32.424137
+            ],
+            [
+              -81.753194,
+              32.42467
+            ],
+            [
+              -81.753702,
+              32.426428
+            ],
+            [
+              -81.752317,
+              32.427653
+            ],
+            [
+              -81.750424,
+              32.42712
+            ],
+            [
+              -81.749916,
+              32.425362
+            ],
+            [
+              -81.751301,
+              32.424137
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a766fffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 9,
+        "n_violations": 9,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -102.0,
+        "worst_measured_dbm": -115.0,
+        "avg_gap_db": -12.0,
         "worst_gap_db": -25.0
       }
     },
@@ -5161,143 +4773,45 @@
         "coordinates": [
           [
             [
-              -81.716359,
-              32.417522
+              -81.760718,
+              32.40256
             ],
             [
-              -81.718251,
-              32.418055
+              -81.762611,
+              32.403093
             ],
             [
-              -81.718758,
-              32.419813
+              -81.76312,
+              32.404851
             ],
             [
-              -81.717373,
-              32.421038
+              -81.761735,
+              32.406077
             ],
             [
-              -81.715481,
-              32.420504
+              -81.759842,
+              32.405544
             ],
             [
-              -81.714974,
-              32.418746
+              -81.759333,
+              32.403786
             ],
             [
-              -81.716359,
-              32.417522
+              -81.760718,
+              32.40256
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a0883ffff",
+        "h3_res9_id": "8944d5a2967ffff",
         "claimed_minsignal_dbm": -90,
-        "n_measurements": 4,
-        "n_violations": 4,
+        "n_measurements": 20,
+        "n_violations": 20,
         "violation_share": 1.0,
-        "avg_measured_dbm": -115.0,
-        "worst_measured_dbm": -115.0,
-        "avg_gap_db": -25.0,
-        "worst_gap_db": -25.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.7489,
-              32.421846
-            ],
-            [
-              -81.750793,
-              32.422379
-            ],
-            [
-              -81.751301,
-              32.424137
-            ],
-            [
-              -81.749916,
-              32.425362
-            ],
-            [
-              -81.748023,
-              32.424829
-            ],
-            [
-              -81.747515,
-              32.423071
-            ],
-            [
-              -81.7489,
-              32.421846
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a766bffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 4,
-        "n_violations": 4,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -114.0,
-        "worst_measured_dbm": -115.0,
-        "avg_gap_db": -24.0,
-        "worst_gap_db": -25.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.806821,
-              32.423601
-            ],
-            [
-              -81.808715,
-              32.424133
-            ],
-            [
-              -81.809225,
-              32.425892
-            ],
-            [
-              -81.807839,
-              32.427118
-            ],
-            [
-              -81.805944,
-              32.426585
-            ],
-            [
-              -81.805435,
-              32.424827
-            ],
-            [
-              -81.806821,
-              32.423601
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a75b3ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 19,
-        "n_violations": 19,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -102.8,
+        "avg_measured_dbm": -103.4,
         "worst_measured_dbm": -114.0,
-        "avg_gap_db": -12.79,
+        "avg_gap_db": -13.35,
         "worst_gap_db": -24.0
       }
     },
@@ -5308,192 +4822,45 @@
         "coordinates": [
           [
             [
-              -81.778179,
-              32.426856
+              -81.764644,
+              32.410126
             ],
             [
-              -81.780073,
-              32.427388
+              -81.766537,
+              32.410659
             ],
             [
-              -81.780582,
-              32.429147
+              -81.767046,
+              32.412417
             ],
             [
-              -81.779196,
-              32.430372
+              -81.76566,
+              32.413642
             ],
             [
-              -81.777302,
-              32.429839
+              -81.763767,
+              32.41311
             ],
             [
-              -81.776794,
-              32.428081
+              -81.763259,
+              32.411351
             ],
             [
-              -81.778179,
-              32.426856
+              -81.764644,
+              32.410126
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a708fffff",
+        "h3_res9_id": "8944d5a7687ffff",
         "claimed_minsignal_dbm": -80,
-        "n_measurements": 23,
-        "n_violations": 18,
-        "violation_share": 0.7826,
-        "avg_measured_dbm": -89.2,
-        "worst_measured_dbm": -104.0,
-        "avg_gap_db": -12.06,
-        "worst_gap_db": -24.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.668175,
-              32.382936
-            ],
-            [
-              -81.670065,
-              32.383469
-            ],
-            [
-              -81.67057,
-              32.385227
-            ],
-            [
-              -81.669186,
-              32.386451
-            ],
-            [
-              -81.667296,
-              32.385917
-            ],
-            [
-              -81.666791,
-              32.38416
-            ],
-            [
-              -81.668175,
-              32.382936
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0237ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 5,
-        "n_violations": 5,
+        "n_measurements": 15,
+        "n_violations": 15,
         "violation_share": 1.0,
-        "avg_measured_dbm": -114.0,
-        "worst_measured_dbm": -114.0,
-        "avg_gap_db": -24.0,
-        "worst_gap_db": -24.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.770972,
-              32.419983
-            ],
-            [
-              -81.772866,
-              32.420515
-            ],
-            [
-              -81.773374,
-              32.422274
-            ],
-            [
-              -81.771989,
-              32.423499
-            ],
-            [
-              -81.770096,
-              32.422966
-            ],
-            [
-              -81.769587,
-              32.421208
-            ],
-            [
-              -81.770972,
-              32.419983
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a70d3ffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 11,
-        "n_violations": 11,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -97.0,
+        "avg_measured_dbm": -97.3,
         "worst_measured_dbm": -104.0,
-        "avg_gap_db": -17.0,
-        "worst_gap_db": -24.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.688461,
-              32.387046
-            ],
-            [
-              -81.690352,
-              32.387579
-            ],
-            [
-              -81.690858,
-              32.389337
-            ],
-            [
-              -81.689474,
-              32.390561
-            ],
-            [
-              -81.687583,
-              32.390028
-            ],
-            [
-              -81.687077,
-              32.38827
-            ],
-            [
-              -81.688461,
-              32.387046
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a014bffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 2,
-        "n_violations": 2,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -104.0,
-        "worst_measured_dbm": -104.0,
-        "avg_gap_db": -24.0,
+        "avg_gap_db": -17.33,
         "worst_gap_db": -24.0
       }
     },
@@ -5543,6 +4910,104 @@
         "avg_measured_dbm": -83.7,
         "worst_measured_dbm": -84.0,
         "avg_gap_db": -23.71,
+        "worst_gap_db": -24.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.773374,
+              32.422274
+            ],
+            [
+              -81.775268,
+              32.422806
+            ],
+            [
+              -81.775777,
+              32.424565
+            ],
+            [
+              -81.774391,
+              32.42579
+            ],
+            [
+              -81.772498,
+              32.425257
+            ],
+            [
+              -81.771989,
+              32.423499
+            ],
+            [
+              -81.773374,
+              32.422274
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a70d7ffff",
+        "claimed_minsignal_dbm": -80,
+        "n_measurements": 30,
+        "n_violations": 27,
+        "violation_share": 0.9,
+        "avg_measured_dbm": -93.0,
+        "worst_measured_dbm": -104.0,
+        "avg_gap_db": -14.56,
+        "worst_gap_db": -24.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.708754,
+              32.391154
+            ],
+            [
+              -81.710645,
+              32.391687
+            ],
+            [
+              -81.711152,
+              32.393445
+            ],
+            [
+              -81.709768,
+              32.39467
+            ],
+            [
+              -81.707877,
+              32.394137
+            ],
+            [
+              -81.70737,
+              32.392379
+            ],
+            [
+              -81.708754,
+              32.391154
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a01afffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 5,
+        "n_violations": 5,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -113.0,
+        "worst_measured_dbm": -114.0,
+        "avg_gap_db": -23.0,
         "worst_gap_db": -24.0
       }
     },
@@ -5651,45 +5116,143 @@
         "coordinates": [
           [
             [
-              -81.789997,
-              32.407564
+              -81.770972,
+              32.419983
             ],
             [
-              -81.791891,
-              32.408097
+              -81.772866,
+              32.420515
             ],
             [
-              -81.7924,
-              32.409855
+              -81.773374,
+              32.422274
             ],
             [
-              -81.791015,
-              32.411081
+              -81.771989,
+              32.423499
             ],
             [
-              -81.789121,
-              32.410549
+              -81.770096,
+              32.422966
             ],
             [
-              -81.788612,
-              32.40879
+              -81.769587,
+              32.421208
             ],
             [
-              -81.789997,
-              32.407564
+              -81.770972,
+              32.419983
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a74b3ffff",
+        "h3_res9_id": "8944d5a70d3ffff",
         "claimed_minsignal_dbm": -80,
-        "n_measurements": 13,
-        "n_violations": 13,
+        "n_measurements": 11,
+        "n_violations": 11,
         "violation_share": 1.0,
-        "avg_measured_dbm": -103.3,
+        "avg_measured_dbm": -97.0,
         "worst_measured_dbm": -104.0,
-        "avg_gap_db": -23.31,
+        "avg_gap_db": -17.0,
+        "worst_gap_db": -24.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.778179,
+              32.426856
+            ],
+            [
+              -81.780073,
+              32.427388
+            ],
+            [
+              -81.780582,
+              32.429147
+            ],
+            [
+              -81.779196,
+              32.430372
+            ],
+            [
+              -81.777302,
+              32.429839
+            ],
+            [
+              -81.776794,
+              32.428081
+            ],
+            [
+              -81.778179,
+              32.426856
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a708fffff",
+        "claimed_minsignal_dbm": -80,
+        "n_measurements": 23,
+        "n_violations": 18,
+        "violation_share": 0.7826,
+        "avg_measured_dbm": -89.2,
+        "worst_measured_dbm": -104.0,
+        "avg_gap_db": -12.06,
+        "worst_gap_db": -24.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.668175,
+              32.382936
+            ],
+            [
+              -81.670065,
+              32.383469
+            ],
+            [
+              -81.67057,
+              32.385227
+            ],
+            [
+              -81.669186,
+              32.386451
+            ],
+            [
+              -81.667296,
+              32.385917
+            ],
+            [
+              -81.666791,
+              32.38416
+            ],
+            [
+              -81.668175,
+              32.382936
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a0237ffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 5,
+        "n_violations": 5,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -114.0,
+        "worst_measured_dbm": -114.0,
+        "avg_gap_db": -24.0,
         "worst_gap_db": -24.0
       }
     },
@@ -5749,104 +5312,6 @@
         "coordinates": [
           [
             [
-              -81.773374,
-              32.422274
-            ],
-            [
-              -81.775268,
-              32.422806
-            ],
-            [
-              -81.775777,
-              32.424565
-            ],
-            [
-              -81.774391,
-              32.42579
-            ],
-            [
-              -81.772498,
-              32.425257
-            ],
-            [
-              -81.771989,
-              32.423499
-            ],
-            [
-              -81.773374,
-              32.422274
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a70d7ffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 30,
-        "n_violations": 27,
-        "violation_share": 0.9,
-        "avg_measured_dbm": -93.0,
-        "worst_measured_dbm": -104.0,
-        "avg_gap_db": -14.56,
-        "worst_gap_db": -24.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.764644,
-              32.410126
-            ],
-            [
-              -81.766537,
-              32.410659
-            ],
-            [
-              -81.767046,
-              32.412417
-            ],
-            [
-              -81.76566,
-              32.413642
-            ],
-            [
-              -81.763767,
-              32.41311
-            ],
-            [
-              -81.763259,
-              32.411351
-            ],
-            [
-              -81.764644,
-              32.410126
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a7687ffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 15,
-        "n_violations": 15,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -97.3,
-        "worst_measured_dbm": -104.0,
-        "avg_gap_db": -17.33,
-        "worst_gap_db": -24.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
               -81.685186,
               32.387737
             ],
@@ -5896,45 +5361,45 @@
         "coordinates": [
           [
             [
-              -81.760718,
-              32.40256
+              -81.806821,
+              32.423601
             ],
             [
-              -81.762611,
-              32.403093
+              -81.808715,
+              32.424133
             ],
             [
-              -81.76312,
-              32.404851
+              -81.809225,
+              32.425892
             ],
             [
-              -81.761735,
-              32.406077
+              -81.807839,
+              32.427118
             ],
             [
-              -81.759842,
-              32.405544
+              -81.805944,
+              32.426585
             ],
             [
-              -81.759333,
-              32.403786
+              -81.805435,
+              32.424827
             ],
             [
-              -81.760718,
-              32.40256
+              -81.806821,
+              32.423601
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a2967ffff",
+        "h3_res9_id": "8944d5a75b3ffff",
         "claimed_minsignal_dbm": -90,
-        "n_measurements": 20,
-        "n_violations": 20,
+        "n_measurements": 19,
+        "n_violations": 19,
         "violation_share": 1.0,
-        "avg_measured_dbm": -103.4,
+        "avg_measured_dbm": -102.8,
         "worst_measured_dbm": -114.0,
-        "avg_gap_db": -13.35,
+        "avg_gap_db": -12.79,
         "worst_gap_db": -24.0
       }
     },
@@ -5994,45 +5459,45 @@
         "coordinates": [
           [
             [
-              -81.708754,
-              32.391154
+              -81.789997,
+              32.407564
             ],
             [
-              -81.710645,
-              32.391687
+              -81.791891,
+              32.408097
             ],
             [
-              -81.711152,
-              32.393445
+              -81.7924,
+              32.409855
             ],
             [
-              -81.709768,
-              32.39467
+              -81.791015,
+              32.411081
             ],
             [
-              -81.707877,
-              32.394137
+              -81.789121,
+              32.410549
             ],
             [
-              -81.70737,
-              32.392379
+              -81.788612,
+              32.40879
             ],
             [
-              -81.708754,
-              32.391154
+              -81.789997,
+              32.407564
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a01afffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 5,
-        "n_violations": 5,
+        "h3_res9_id": "8944d5a74b3ffff",
+        "claimed_minsignal_dbm": -80,
+        "n_measurements": 13,
+        "n_violations": 13,
         "violation_share": 1.0,
-        "avg_measured_dbm": -113.0,
-        "worst_measured_dbm": -114.0,
-        "avg_gap_db": -23.0,
+        "avg_measured_dbm": -103.3,
+        "worst_measured_dbm": -104.0,
+        "avg_gap_db": -23.31,
         "worst_gap_db": -24.0
       }
     },
@@ -6043,143 +5508,45 @@
         "coordinates": [
           [
             [
-              -81.750469,
-              32.385138
+              -81.764834,
+              32.440867
             ],
             [
-              -81.752362,
-              32.385671
+              -81.766728,
+              32.4414
             ],
             [
-              -81.752869,
-              32.387429
+              -81.767236,
+              32.443158
             ],
             [
-              -81.751485,
-              32.388655
+              -81.76585,
+              32.444383
             ],
             [
-              -81.749592,
-              32.388122
+              -81.763957,
+              32.44385
             ],
             [
-              -81.749085,
-              32.386364
+              -81.763448,
+              32.442092
             ],
             [
-              -81.750469,
-              32.385138
+              -81.764834,
+              32.440867
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a2823ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 1,
-        "n_violations": 1,
+        "h3_res9_id": "8944d5a73d3ffff",
+        "claimed_minsignal_dbm": -80,
+        "n_measurements": 18,
+        "n_violations": 18,
         "violation_share": 1.0,
-        "avg_measured_dbm": -113.0,
-        "worst_measured_dbm": -113.0,
-        "avg_gap_db": -23.0,
-        "worst_gap_db": -23.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.733621,
-              32.411082
-            ],
-            [
-              -81.735513,
-              32.411615
-            ],
-            [
-              -81.736021,
-              32.413373
-            ],
-            [
-              -81.734636,
-              32.414598
-            ],
-            [
-              -81.732744,
-              32.414065
-            ],
-            [
-              -81.732236,
-              32.412307
-            ],
-            [
-              -81.733621,
-              32.411082
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0dd7ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 8,
-        "n_violations": 8,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -107.5,
-        "worst_measured_dbm": -113.0,
-        "avg_gap_db": -17.5,
-        "worst_gap_db": -23.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.746499,
-              32.419554
-            ],
-            [
-              -81.748392,
-              32.420088
-            ],
-            [
-              -81.7489,
-              32.421846
-            ],
-            [
-              -81.747515,
-              32.423071
-            ],
-            [
-              -81.745622,
-              32.422538
-            ],
-            [
-              -81.745114,
-              32.42078
-            ],
-            [
-              -81.746499,
-              32.419554
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0db7ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 5,
-        "n_violations": 5,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -112.2,
-        "worst_measured_dbm": -113.0,
-        "avg_gap_db": -22.2,
+        "avg_measured_dbm": -102.2,
+        "worst_measured_dbm": -103.0,
+        "avg_gap_db": -22.22,
         "worst_gap_db": -23.0
       }
     },
@@ -6288,45 +5655,45 @@
         "coordinates": [
           [
             [
-              -81.764834,
-              32.440867
+              -81.746499,
+              32.419554
             ],
             [
-              -81.766728,
-              32.4414
+              -81.748392,
+              32.420088
             ],
             [
-              -81.767236,
-              32.443158
+              -81.7489,
+              32.421846
             ],
             [
-              -81.76585,
-              32.444383
+              -81.747515,
+              32.423071
             ],
             [
-              -81.763957,
-              32.44385
+              -81.745622,
+              32.422538
             ],
             [
-              -81.763448,
-              32.442092
+              -81.745114,
+              32.42078
             ],
             [
-              -81.764834,
-              32.440867
+              -81.746499,
+              32.419554
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a73d3ffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 18,
-        "n_violations": 18,
+        "h3_res9_id": "8944d5a0db7ffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 5,
+        "n_violations": 5,
         "violation_share": 1.0,
-        "avg_measured_dbm": -102.2,
-        "worst_measured_dbm": -103.0,
-        "avg_gap_db": -22.22,
+        "avg_measured_dbm": -112.2,
+        "worst_measured_dbm": -113.0,
+        "avg_gap_db": -22.2,
         "worst_gap_db": -23.0
       }
     },
@@ -6337,46 +5704,95 @@
         "coordinates": [
           [
             [
-              -81.747192,
-              32.385831
+              -81.733621,
+              32.411082
             ],
             [
-              -81.749085,
-              32.386364
+              -81.735513,
+              32.411615
             ],
             [
-              -81.749592,
-              32.388122
+              -81.736021,
+              32.413373
             ],
             [
-              -81.748208,
-              32.389348
+              -81.734636,
+              32.414598
             ],
             [
-              -81.746315,
-              32.388815
+              -81.732744,
+              32.414065
             ],
             [
-              -81.745808,
-              32.387057
+              -81.732236,
+              32.412307
             ],
             [
-              -81.747192,
-              32.385831
+              -81.733621,
+              32.411082
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a282bffff",
+        "h3_res9_id": "8944d5a0dd7ffff",
         "claimed_minsignal_dbm": -90,
-        "n_measurements": 2,
-        "n_violations": 2,
+        "n_measurements": 8,
+        "n_violations": 8,
         "violation_share": 1.0,
-        "avg_measured_dbm": -113.0,
+        "avg_measured_dbm": -107.5,
         "worst_measured_dbm": -113.0,
-        "avg_gap_db": -23.0,
+        "avg_gap_db": -17.5,
         "worst_gap_db": -23.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.686301,
+              32.373517
+            ],
+            [
+              -81.688192,
+              32.374051
+            ],
+            [
+              -81.688698,
+              32.375808
+            ],
+            [
+              -81.687314,
+              32.377033
+            ],
+            [
+              -81.685423,
+              32.3765
+            ],
+            [
+              -81.684917,
+              32.374742
+            ],
+            [
+              -81.686301,
+              32.373517
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a0007ffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 3,
+        "n_violations": 3,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -105.7,
+        "worst_measured_dbm": -112.0,
+        "avg_gap_db": -15.67,
+        "worst_gap_db": -22.0
       }
     },
     {
@@ -6484,6 +5900,55 @@
         "coordinates": [
           [
             [
+              -81.691972,
+              32.375117
+            ],
+            [
+              -81.693863,
+              32.37565
+            ],
+            [
+              -81.694369,
+              32.377408
+            ],
+            [
+              -81.692985,
+              32.378633
+            ],
+            [
+              -81.691094,
+              32.378099
+            ],
+            [
+              -81.690588,
+              32.376342
+            ],
+            [
+              -81.691972,
+              32.375117
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a00afffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 5,
+        "n_violations": 5,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -111.2,
+        "worst_measured_dbm": -112.0,
+        "avg_gap_db": -21.2,
+        "worst_gap_db": -22.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
               -81.666657,
               32.377663
             ],
@@ -6523,55 +5988,6 @@
         "avg_measured_dbm": -109.5,
         "worst_measured_dbm": -112.0,
         "avg_gap_db": -19.5,
-        "worst_gap_db": -22.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.744378,
-              32.36404
-            ],
-            [
-              -81.746269,
-              32.364573
-            ],
-            [
-              -81.746777,
-              32.366331
-            ],
-            [
-              -81.745393,
-              32.367556
-            ],
-            [
-              -81.743501,
-              32.367024
-            ],
-            [
-              -81.742993,
-              32.365266
-            ],
-            [
-              -81.744378,
-              32.36404
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a2c6bffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 1,
-        "n_violations": 1,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -112.0,
-        "worst_measured_dbm": -112.0,
-        "avg_gap_db": -22.0,
         "worst_gap_db": -22.0
       }
     },
@@ -6622,202 +6038,6 @@
         "worst_measured_dbm": -112.0,
         "avg_gap_db": -20.33,
         "worst_gap_db": -22.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.691972,
-              32.375117
-            ],
-            [
-              -81.693863,
-              32.37565
-            ],
-            [
-              -81.694369,
-              32.377408
-            ],
-            [
-              -81.692985,
-              32.378633
-            ],
-            [
-              -81.691094,
-              32.378099
-            ],
-            [
-              -81.690588,
-              32.376342
-            ],
-            [
-              -81.691972,
-              32.375117
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a00afffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 5,
-        "n_violations": 5,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -111.2,
-        "worst_measured_dbm": -112.0,
-        "avg_gap_db": -21.2,
-        "worst_gap_db": -22.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.694133,
-              32.388646
-            ],
-            [
-              -81.696024,
-              32.389179
-            ],
-            [
-              -81.69653,
-              32.390937
-            ],
-            [
-              -81.695146,
-              32.392161
-            ],
-            [
-              -81.693255,
-              32.391628
-            ],
-            [
-              -81.692749,
-              32.38987
-            ],
-            [
-              -81.694133,
-              32.388646
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0147ffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 1,
-        "n_violations": 1,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -102.0,
-        "worst_measured_dbm": -102.0,
-        "avg_gap_db": -22.0,
-        "worst_gap_db": -22.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.686301,
-              32.373517
-            ],
-            [
-              -81.688192,
-              32.374051
-            ],
-            [
-              -81.688698,
-              32.375808
-            ],
-            [
-              -81.687314,
-              32.377033
-            ],
-            [
-              -81.685423,
-              32.3765
-            ],
-            [
-              -81.684917,
-              32.374742
-            ],
-            [
-              -81.686301,
-              32.373517
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0007ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 3,
-        "n_violations": 3,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -105.7,
-        "worst_measured_dbm": -112.0,
-        "avg_gap_db": -15.67,
-        "worst_gap_db": -22.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.675839,
-              32.367336
-            ],
-            [
-              -81.677729,
-              32.367869
-            ],
-            [
-              -81.678235,
-              32.369627
-            ],
-            [
-              -81.676851,
-              32.370851
-            ],
-            [
-              -81.674961,
-              32.370318
-            ],
-            [
-              -81.674455,
-              32.36856
-            ],
-            [
-              -81.675839,
-              32.367336
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0053ffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 6,
-        "n_violations": 6,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -99.3,
-        "worst_measured_dbm": -101.0,
-        "avg_gap_db": -19.33,
-        "worst_gap_db": -21.0
       }
     },
     {
@@ -6925,55 +6145,6 @@
         "coordinates": [
           [
             [
-              -81.730111,
-              32.423013
-            ],
-            [
-              -81.732004,
-              32.423546
-            ],
-            [
-              -81.732511,
-              32.425304
-            ],
-            [
-              -81.731126,
-              32.426529
-            ],
-            [
-              -81.729234,
-              32.425996
-            ],
-            [
-              -81.728726,
-              32.424238
-            ],
-            [
-              -81.730111,
-              32.423013
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0d73ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 4,
-        "n_violations": 4,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -111.0,
-        "worst_measured_dbm": -111.0,
-        "avg_gap_db": -21.0,
-        "worst_gap_db": -21.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
               -81.724434,
               32.421413
             ],
@@ -7013,251 +6184,6 @@
         "avg_measured_dbm": -111.0,
         "worst_measured_dbm": -111.0,
         "avg_gap_db": -21.0,
-        "worst_gap_db": -21.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.674961,
-              32.370318
-            ],
-            [
-              -81.676851,
-              32.370851
-            ],
-            [
-              -81.677357,
-              32.372609
-            ],
-            [
-              -81.675973,
-              32.373833
-            ],
-            [
-              -81.674083,
-              32.3733
-            ],
-            [
-              -81.673577,
-              32.371542
-            ],
-            [
-              -81.674961,
-              32.370318
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0043ffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 5,
-        "n_violations": 5,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -100.4,
-        "worst_measured_dbm": -101.0,
-        "avg_gap_db": -20.4,
-        "worst_gap_db": -21.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.789121,
-              32.410549
-            ],
-            [
-              -81.791015,
-              32.411081
-            ],
-            [
-              -81.791523,
-              32.41284
-            ],
-            [
-              -81.790138,
-              32.414066
-            ],
-            [
-              -81.788244,
-              32.413533
-            ],
-            [
-              -81.787735,
-              32.411775
-            ],
-            [
-              -81.789121,
-              32.410549
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a74a3ffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 1,
-        "n_violations": 1,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -101.0,
-        "worst_measured_dbm": -101.0,
-        "avg_gap_db": -21.0,
-        "worst_gap_db": -21.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.740225,
-              32.367717
-            ],
-            [
-              -81.742116,
-              32.36825
-            ],
-            [
-              -81.742624,
-              32.370008
-            ],
-            [
-              -81.74124,
-              32.371233
-            ],
-            [
-              -81.739348,
-              32.370701
-            ],
-            [
-              -81.73884,
-              32.368943
-            ],
-            [
-              -81.740225,
-              32.367717
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a28dbffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 1,
-        "n_violations": 1,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -111.0,
-        "worst_measured_dbm": -111.0,
-        "avg_gap_db": -21.0,
-        "worst_gap_db": -21.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.709397,
-              32.39941
-            ],
-            [
-              -81.711288,
-              32.399943
-            ],
-            [
-              -81.711795,
-              32.401701
-            ],
-            [
-              -81.710411,
-              32.402926
-            ],
-            [
-              -81.708519,
-              32.402392
-            ],
-            [
-              -81.708013,
-              32.400635
-            ],
-            [
-              -81.709397,
-              32.39941
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0c53ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 6,
-        "n_violations": 6,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -108.3,
-        "worst_measured_dbm": -111.0,
-        "avg_gap_db": -18.33,
-        "worst_gap_db": -21.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.742624,
-              32.370008
-            ],
-            [
-              -81.744516,
-              32.37054
-            ],
-            [
-              -81.745023,
-              32.372298
-            ],
-            [
-              -81.743639,
-              32.373524
-            ],
-            [
-              -81.741747,
-              32.372991
-            ],
-            [
-              -81.74124,
-              32.371233
-            ],
-            [
-              -81.742624,
-              32.370008
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a28c3ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 9,
-        "n_violations": 9,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -107.3,
-        "worst_measured_dbm": -111.0,
-        "avg_gap_db": -17.33,
         "worst_gap_db": -21.0
       }
     },
@@ -7317,46 +6243,242 @@
         "coordinates": [
           [
             [
-              -81.756793,
-              32.394995
+              -81.675839,
+              32.367336
             ],
             [
-              -81.758686,
-              32.395527
+              -81.677729,
+              32.367869
             ],
             [
-              -81.759194,
-              32.397286
+              -81.678235,
+              32.369627
             ],
             [
-              -81.757809,
-              32.398511
+              -81.676851,
+              32.370851
             ],
             [
-              -81.755917,
-              32.397978
+              -81.674961,
+              32.370318
             ],
             [
-              -81.755409,
-              32.39622
+              -81.674455,
+              32.36856
             ],
             [
-              -81.756793,
-              32.394995
+              -81.675839,
+              32.367336
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a2947ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 25,
-        "n_violations": 25,
+        "h3_res9_id": "8944d5a0053ffff",
+        "claimed_minsignal_dbm": -80,
+        "n_measurements": 6,
+        "n_violations": 6,
         "violation_share": 1.0,
-        "avg_measured_dbm": -101.3,
-        "worst_measured_dbm": -110.0,
-        "avg_gap_db": -11.28,
-        "worst_gap_db": -20.0
+        "avg_measured_dbm": -99.3,
+        "worst_measured_dbm": -101.0,
+        "avg_gap_db": -19.33,
+        "worst_gap_db": -21.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.674961,
+              32.370318
+            ],
+            [
+              -81.676851,
+              32.370851
+            ],
+            [
+              -81.677357,
+              32.372609
+            ],
+            [
+              -81.675973,
+              32.373833
+            ],
+            [
+              -81.674083,
+              32.3733
+            ],
+            [
+              -81.673577,
+              32.371542
+            ],
+            [
+              -81.674961,
+              32.370318
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a0043ffff",
+        "claimed_minsignal_dbm": -80,
+        "n_measurements": 5,
+        "n_violations": 5,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -100.4,
+        "worst_measured_dbm": -101.0,
+        "avg_gap_db": -20.4,
+        "worst_gap_db": -21.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.709397,
+              32.39941
+            ],
+            [
+              -81.711288,
+              32.399943
+            ],
+            [
+              -81.711795,
+              32.401701
+            ],
+            [
+              -81.710411,
+              32.402926
+            ],
+            [
+              -81.708519,
+              32.402392
+            ],
+            [
+              -81.708013,
+              32.400635
+            ],
+            [
+              -81.709397,
+              32.39941
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a0c53ffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 6,
+        "n_violations": 6,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -108.3,
+        "worst_measured_dbm": -111.0,
+        "avg_gap_db": -18.33,
+        "worst_gap_db": -21.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.730111,
+              32.423013
+            ],
+            [
+              -81.732004,
+              32.423546
+            ],
+            [
+              -81.732511,
+              32.425304
+            ],
+            [
+              -81.731126,
+              32.426529
+            ],
+            [
+              -81.729234,
+              32.425996
+            ],
+            [
+              -81.728726,
+              32.424238
+            ],
+            [
+              -81.730111,
+              32.423013
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a0d73ffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 4,
+        "n_violations": 4,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -111.0,
+        "worst_measured_dbm": -111.0,
+        "avg_gap_db": -21.0,
+        "worst_gap_db": -21.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.742624,
+              32.370008
+            ],
+            [
+              -81.744516,
+              32.37054
+            ],
+            [
+              -81.745023,
+              32.372298
+            ],
+            [
+              -81.743639,
+              32.373524
+            ],
+            [
+              -81.741747,
+              32.372991
+            ],
+            [
+              -81.74124,
+              32.371233
+            ],
+            [
+              -81.742624,
+              32.370008
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a28c3ffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 9,
+        "n_violations": 9,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -107.3,
+        "worst_measured_dbm": -111.0,
+        "avg_gap_db": -17.33,
+        "worst_gap_db": -21.0
       }
     },
     {
@@ -7513,45 +6635,94 @@
         "coordinates": [
           [
             [
-              -81.744099,
-              32.417263
+              -81.756793,
+              32.394995
             ],
             [
-              -81.745992,
-              32.417796
+              -81.758686,
+              32.395527
             ],
             [
-              -81.746499,
-              32.419554
+              -81.759194,
+              32.397286
             ],
             [
-              -81.745114,
-              32.42078
+              -81.757809,
+              32.398511
             ],
             [
-              -81.743222,
-              32.420246
+              -81.755917,
+              32.397978
             ],
             [
-              -81.742714,
-              32.418488
+              -81.755409,
+              32.39622
             ],
             [
-              -81.744099,
-              32.417263
+              -81.756793,
+              32.394995
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a0db3ffff",
+        "h3_res9_id": "8944d5a2947ffff",
         "claimed_minsignal_dbm": -90,
-        "n_measurements": 5,
-        "n_violations": 5,
+        "n_measurements": 25,
+        "n_violations": 25,
         "violation_share": 1.0,
-        "avg_measured_dbm": -109.0,
+        "avg_measured_dbm": -101.3,
+        "worst_measured_dbm": -110.0,
+        "avg_gap_db": -11.28,
+        "worst_gap_db": -20.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -81.768113,
+              32.440175
+            ],
+            [
+              -81.770007,
+              32.440708
+            ],
+            [
+              -81.770515,
+              32.442466
+            ],
+            [
+              -81.76913,
+              32.443691
+            ],
+            [
+              -81.767236,
+              32.443158
+            ],
+            [
+              -81.766728,
+              32.4414
+            ],
+            [
+              -81.768113,
+              32.440175
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a706fffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 11,
+        "n_violations": 11,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -105.7,
         "worst_measured_dbm": -109.0,
-        "avg_gap_db": -19.0,
+        "avg_gap_db": -15.73,
         "worst_gap_db": -19.0
       }
     },
@@ -7611,192 +6782,45 @@
         "coordinates": [
           [
             [
-              -81.731919,
-              32.37507
+              -81.663384,
+              32.378353
             ],
             [
-              -81.73381,
-              32.375603
+              -81.665273,
+              32.378887
             ],
             [
-              -81.734318,
-              32.377361
+              -81.665779,
+              32.380644
             ],
             [
-              -81.732933,
-              32.378586
+              -81.664395,
+              32.381868
             ],
             [
-              -81.731041,
-              32.378053
+              -81.662505,
+              32.381335
             ],
             [
-              -81.730534,
-              32.376295
+              -81.662,
+              32.379577
             ],
             [
-              -81.731919,
-              32.37507
+              -81.663384,
+              32.378353
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a2a97ffff",
+        "h3_res9_id": "8944d5a0207ffff",
         "claimed_minsignal_dbm": -90,
-        "n_measurements": 1,
-        "n_violations": 1,
+        "n_measurements": 14,
+        "n_violations": 14,
         "violation_share": 1.0,
-        "avg_measured_dbm": -109.0,
+        "avg_measured_dbm": -106.4,
         "worst_measured_dbm": -109.0,
-        "avg_gap_db": -19.0,
-        "worst_gap_db": -19.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.730344,
-              32.411774
-            ],
-            [
-              -81.732236,
-              32.412307
-            ],
-            [
-              -81.732744,
-              32.414065
-            ],
-            [
-              -81.731359,
-              32.41529
-            ],
-            [
-              -81.729466,
-              32.414756
-            ],
-            [
-              -81.728959,
-              32.412998
-            ],
-            [
-              -81.730344,
-              32.411774
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0dc3ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 2,
-        "n_violations": 2,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -109.0,
-        "worst_measured_dbm": -109.0,
-        "avg_gap_db": -19.0,
-        "worst_gap_db": -19.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.768113,
-              32.440175
-            ],
-            [
-              -81.770007,
-              32.440708
-            ],
-            [
-              -81.770515,
-              32.442466
-            ],
-            [
-              -81.76913,
-              32.443691
-            ],
-            [
-              -81.767236,
-              32.443158
-            ],
-            [
-              -81.766728,
-              32.4414
-            ],
-            [
-              -81.768113,
-              32.440175
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a706fffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 11,
-        "n_violations": 11,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -105.7,
-        "worst_measured_dbm": -109.0,
-        "avg_gap_db": -15.73,
-        "worst_gap_db": -19.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.732744,
-              32.414065
-            ],
-            [
-              -81.734636,
-              32.414598
-            ],
-            [
-              -81.735143,
-              32.416356
-            ],
-            [
-              -81.733759,
-              32.417581
-            ],
-            [
-              -81.731866,
-              32.417048
-            ],
-            [
-              -81.731359,
-              32.41529
-            ],
-            [
-              -81.732744,
-              32.414065
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0dc7ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 1,
-        "n_violations": 1,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -109.0,
-        "worst_measured_dbm": -109.0,
-        "avg_gap_db": -19.0,
+        "avg_gap_db": -16.43,
         "worst_gap_db": -19.0
       }
     },
@@ -7842,55 +6866,6 @@
         "claimed_minsignal_dbm": -90,
         "n_measurements": 3,
         "n_violations": 3,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -109.0,
-        "worst_measured_dbm": -109.0,
-        "avg_gap_db": -19.0,
-        "worst_gap_db": -19.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.677119,
-              32.383845
-            ],
-            [
-              -81.679009,
-              32.384379
-            ],
-            [
-              -81.679515,
-              32.386137
-            ],
-            [
-              -81.678131,
-              32.387361
-            ],
-            [
-              -81.676241,
-              32.386827
-            ],
-            [
-              -81.675735,
-              32.38507
-            ],
-            [
-              -81.677119,
-              32.383845
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a03d7ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 4,
-        "n_violations": 4,
         "violation_share": 1.0,
         "avg_measured_dbm": -109.0,
         "worst_measured_dbm": -109.0,
@@ -7954,45 +6929,45 @@
         "coordinates": [
           [
             [
-              -81.663384,
-              32.378353
+              -81.677119,
+              32.383845
             ],
             [
-              -81.665273,
-              32.378887
+              -81.679009,
+              32.384379
             ],
             [
-              -81.665779,
-              32.380644
+              -81.679515,
+              32.386137
             ],
             [
-              -81.664395,
-              32.381868
+              -81.678131,
+              32.387361
             ],
             [
-              -81.662505,
-              32.381335
+              -81.676241,
+              32.386827
             ],
             [
-              -81.662,
-              32.379577
+              -81.675735,
+              32.38507
             ],
             [
-              -81.663384,
-              32.378353
+              -81.677119,
+              32.383845
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a0207ffff",
+        "h3_res9_id": "8944d5a03d7ffff",
         "claimed_minsignal_dbm": -90,
-        "n_measurements": 14,
-        "n_violations": 14,
+        "n_measurements": 4,
+        "n_violations": 4,
         "violation_share": 1.0,
-        "avg_measured_dbm": -106.4,
+        "avg_measured_dbm": -109.0,
         "worst_measured_dbm": -109.0,
-        "avg_gap_db": -16.43,
+        "avg_gap_db": -19.0,
         "worst_gap_db": -19.0
       }
     },
@@ -8003,41 +6978,41 @@
         "coordinates": [
           [
             [
-              -81.736122,
-              32.329408
+              -81.744099,
+              32.417263
             ],
             [
-              -81.738013,
-              32.32994
+              -81.745992,
+              32.417796
             ],
             [
-              -81.738521,
-              32.331699
+              -81.746499,
+              32.419554
             ],
             [
-              -81.737137,
-              32.332925
+              -81.745114,
+              32.42078
             ],
             [
-              -81.735246,
-              32.332392
+              -81.743222,
+              32.420246
             ],
             [
-              -81.734739,
-              32.330634
+              -81.742714,
+              32.418488
             ],
             [
-              -81.736122,
-              32.329408
+              -81.744099,
+              32.417263
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a256fffff",
+        "h3_res9_id": "8944d5a0db3ffff",
         "claimed_minsignal_dbm": -90,
-        "n_measurements": 1,
-        "n_violations": 1,
+        "n_measurements": 5,
+        "n_violations": 5,
         "violation_share": 1.0,
         "avg_measured_dbm": -109.0,
         "worst_measured_dbm": -109.0,
@@ -8248,55 +7223,6 @@
         "coordinates": [
           [
             [
-              -81.765711,
-              32.437884
-            ],
-            [
-              -81.767605,
-              32.438417
-            ],
-            [
-              -81.768113,
-              32.440175
-            ],
-            [
-              -81.766728,
-              32.4414
-            ],
-            [
-              -81.764834,
-              32.440867
-            ],
-            [
-              -81.764325,
-              32.439109
-            ],
-            [
-              -81.765711,
-              32.437884
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a706bffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 10,
-        "n_violations": 10,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -103.8,
-        "worst_measured_dbm": -107.0,
-        "avg_gap_db": -13.8,
-        "worst_gap_db": -17.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
               -81.742855,
               32.358765
             ],
@@ -8346,144 +7272,46 @@
         "coordinates": [
           [
             [
-              -81.714837,
-              32.412248
+              -81.765711,
+              32.437884
             ],
             [
-              -81.716729,
-              32.412782
+              -81.767605,
+              32.438417
             ],
             [
-              -81.717236,
-              32.414539
+              -81.768113,
+              32.440175
             ],
             [
-              -81.715852,
-              32.415764
+              -81.766728,
+              32.4414
             ],
             [
-              -81.71396,
-              32.415231
+              -81.764834,
+              32.440867
             ],
             [
-              -81.713453,
-              32.413473
+              -81.764325,
+              32.439109
             ],
             [
-              -81.714837,
-              32.412248
+              -81.765711,
+              32.437884
             ]
           ]
         ]
       },
       "properties": {
-        "h3_res9_id": "8944d5a0c67ffff",
+        "h3_res9_id": "8944d5a706bffff",
         "claimed_minsignal_dbm": -90,
-        "n_measurements": 2,
-        "n_violations": 2,
+        "n_measurements": 10,
+        "n_violations": 10,
         "violation_share": 1.0,
-        "avg_measured_dbm": -107.0,
+        "avg_measured_dbm": -103.8,
         "worst_measured_dbm": -107.0,
-        "avg_gap_db": -17.0,
+        "avg_gap_db": -13.8,
         "worst_gap_db": -17.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.697408,
-              32.387955
-            ],
-            [
-              -81.699299,
-              32.388488
-            ],
-            [
-              -81.699805,
-              32.390246
-            ],
-            [
-              -81.698421,
-              32.39147
-            ],
-            [
-              -81.69653,
-              32.390937
-            ],
-            [
-              -81.696024,
-              32.389179
-            ],
-            [
-              -81.697408,
-              32.387955
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a010bffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 2,
-        "n_violations": 2,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -97.0,
-        "worst_measured_dbm": -97.0,
-        "avg_gap_db": -17.0,
-        "worst_gap_db": -17.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.681912,
-              32.388428
-            ],
-            [
-              -81.683802,
-              32.388961
-            ],
-            [
-              -81.684308,
-              32.390719
-            ],
-            [
-              -81.682924,
-              32.391943
-            ],
-            [
-              -81.681034,
-              32.391409
-            ],
-            [
-              -81.680527,
-              32.389652
-            ],
-            [
-              -81.681912,
-              32.388428
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a038fffff",
-        "claimed_minsignal_dbm": -80,
-        "n_measurements": 2,
-        "n_violations": 2,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -96.0,
-        "worst_measured_dbm": -96.0,
-        "avg_gap_db": -16.0,
-        "worst_gap_db": -16.0
       }
     },
     {
@@ -8542,55 +7370,6 @@
         "coordinates": [
           [
             [
-              -81.687583,
-              32.390028
-            ],
-            [
-              -81.689474,
-              32.390561
-            ],
-            [
-              -81.68998,
-              32.392319
-            ],
-            [
-              -81.688596,
-              32.393543
-            ],
-            [
-              -81.686705,
-              32.39301
-            ],
-            [
-              -81.686199,
-              32.391252
-            ],
-            [
-              -81.687583,
-              32.390028
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a03b3ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 1,
-        "n_violations": 1,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -104.0,
-        "worst_measured_dbm": -104.0,
-        "avg_gap_db": -14.0,
-        "worst_gap_db": -14.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
               -81.786718,
               32.408258
             ],
@@ -8631,153 +7410,6 @@
         "worst_measured_dbm": -104.0,
         "avg_gap_db": -11.53,
         "worst_gap_db": -14.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.691736,
-              32.386355
-            ],
-            [
-              -81.693626,
-              32.386888
-            ],
-            [
-              -81.694133,
-              32.388646
-            ],
-            [
-              -81.692749,
-              32.38987
-            ],
-            [
-              -81.690858,
-              32.389337
-            ],
-            [
-              -81.690352,
-              32.387579
-            ],
-            [
-              -81.691736,
-              32.386355
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0143ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 3,
-        "n_violations": 3,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -102.0,
-        "worst_measured_dbm": -102.0,
-        "avg_gap_db": -12.0,
-        "worst_gap_db": -12.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.763309,
-              32.435593
-            ],
-            [
-              -81.765202,
-              32.436126
-            ],
-            [
-              -81.765711,
-              32.437884
-            ],
-            [
-              -81.764325,
-              32.439109
-            ],
-            [
-              -81.762432,
-              32.438576
-            ],
-            [
-              -81.761923,
-              32.436818
-            ],
-            [
-              -81.763309,
-              32.435593
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a72b7ffff",
-        "claimed_minsignal_dbm": -70,
-        "n_measurements": 1,
-        "n_violations": 1,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -82.0,
-        "worst_measured_dbm": -82.0,
-        "avg_gap_db": -12.0,
-        "worst_gap_db": -12.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.664262,
-              32.375372
-            ],
-            [
-              -81.666152,
-              32.375905
-            ],
-            [
-              -81.666657,
-              32.377663
-            ],
-            [
-              -81.665273,
-              32.378887
-            ],
-            [
-              -81.663384,
-              32.378353
-            ],
-            [
-              -81.662878,
-              32.376596
-            ],
-            [
-              -81.664262,
-              32.375372
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a0217ffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 2,
-        "n_violations": 2,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -101.0,
-        "worst_measured_dbm": -102.0,
-        "avg_gap_db": -11.0,
-        "worst_gap_db": -12.0
       }
     },
     {
@@ -8836,6 +7468,55 @@
         "coordinates": [
           [
             [
+              -81.691736,
+              32.386355
+            ],
+            [
+              -81.693626,
+              32.386888
+            ],
+            [
+              -81.694133,
+              32.388646
+            ],
+            [
+              -81.692749,
+              32.38987
+            ],
+            [
+              -81.690858,
+              32.389337
+            ],
+            [
+              -81.690352,
+              32.387579
+            ],
+            [
+              -81.691736,
+              32.386355
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "h3_res9_id": "8944d5a0143ffff",
+        "claimed_minsignal_dbm": -90,
+        "n_measurements": 3,
+        "n_violations": 3,
+        "violation_share": 1.0,
+        "avg_measured_dbm": -102.0,
+        "worst_measured_dbm": -102.0,
+        "avg_gap_db": -12.0,
+        "worst_gap_db": -12.0
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
               -81.695011,
               32.385664
             ],
@@ -8876,104 +7557,6 @@
         "worst_measured_dbm": -97.0,
         "avg_gap_db": -7.0,
         "worst_gap_db": -7.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.681509,
-              32.368935
-            ],
-            [
-              -81.683399,
-              32.369469
-            ],
-            [
-              -81.683905,
-              32.371226
-            ],
-            [
-              -81.682521,
-              32.372451
-            ],
-            [
-              -81.680631,
-              32.371918
-            ],
-            [
-              -81.680125,
-              32.37016
-            ],
-            [
-              -81.681509,
-              32.368935
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a001bffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 2,
-        "n_violations": 2,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -96.0,
-        "worst_measured_dbm": -96.0,
-        "avg_gap_db": -6.0,
-        "worst_gap_db": -6.0
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -81.680631,
-              32.371918
-            ],
-            [
-              -81.682521,
-              32.372451
-            ],
-            [
-              -81.683027,
-              32.374209
-            ],
-            [
-              -81.681643,
-              32.375433
-            ],
-            [
-              -81.679753,
-              32.3749
-            ],
-            [
-              -81.679247,
-              32.373142
-            ],
-            [
-              -81.680631,
-              32.371918
-            ]
-          ]
-        ]
-      },
-      "properties": {
-        "h3_res9_id": "8944d5a000bffff",
-        "claimed_minsignal_dbm": -90,
-        "n_measurements": 2,
-        "n_violations": 2,
-        "violation_share": 1.0,
-        "avg_measured_dbm": -94.5,
-        "worst_measured_dbm": -96.0,
-        "avg_gap_db": -4.5,
-        "worst_gap_db": -6.0
       }
     },
     {

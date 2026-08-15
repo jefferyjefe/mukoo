@@ -127,6 +127,14 @@ kept local (gitignored), so the published data shows *which claimed cells failed
 and by how much* without mapping individual drives. Regenerate with
 [`docs/aggregate_violations_by_hex.py`](docs/aggregate_violations_by_hex.py).
 
+A hex is published only if it holds **at least three measurements** (155 of the
+184 hexes with a violation). This is a statistical floor, not a privacy one:
+every per-hex figure is a rate or a mean, and on one or two readings neither is
+one — a single momentary fade would publish as a 100% violation rate reading with
+the same authority as a cell backed by 73 readings. The audit is unaffected; the
+headline counts above are computed over every measurement, and the file's header
+carries both the audit totals and the published subset.
+
 ### Data model
 
 The first migration creates `measurements`, one row per reading:
