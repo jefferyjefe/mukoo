@@ -62,14 +62,24 @@ suggest:
 refresh:
 	mukoo-refresh
 
+# The committed plist is a template: it carries placeholders rather than this
+# machine's paths or a live connection string. Substitute them into the
+# installed copy only, which lives outside the repo.
+VENV ?= $(CURDIR)/.venv
+AGENT = $(HOME)/Library/LaunchAgents/com.mukoo.model-refresh.plist
+
 autorefresh-install:
-	cp infra/com.mukoo.model-refresh.plist ~/Library/LaunchAgents/
-	launchctl load ~/Library/LaunchAgents/com.mukoo.model-refresh.plist
-	@echo "refresh agent loaded; log: ~/mukoo/refresh.log"
+	@mkdir -p $(HOME)/Library/LaunchAgents
+	sed -e 's|__MUKOO_HOME__|$(CURDIR)|g' \
+	    -e 's|__VENV__|$(VENV)|g' \
+	    -e 's|__DATABASE_URL__|$(DATABASE_URL)|g' \
+	    infra/com.mukoo.model-refresh.plist > $(AGENT)
+	launchctl load $(AGENT)
+	@echo "refresh agent loaded; log: $(CURDIR)/refresh.log"
 
 autorefresh-remove:
-	launchctl unload ~/Library/LaunchAgents/com.mukoo.model-refresh.plist
-	rm ~/Library/LaunchAgents/com.mukoo.model-refresh.plist
+	launchctl unload $(AGENT)
+	rm $(AGENT)
 
 api:
 	flask --app mukoo_ingest.wsgi:app run

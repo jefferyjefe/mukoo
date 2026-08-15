@@ -3,29 +3,40 @@
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!-- Auto-refresh agent: every 15 minutes, re-run kriging + drive suggestions
      iff new measurements landed (mukoo-refresh exits instantly otherwise, so
-     the idle cost is one SELECT). Install:
+     the idle cost is one SELECT).
 
-       cp infra/com.mukoo.model-refresh.plist ~/Library/LaunchAgents/
+     This is a TEMPLATE. Replace __MUKOO_HOME__ with the absolute path of your
+     checkout and __VENV__ with the virtualenv it is installed in, then install:
+
+       sed -e "s|__MUKOO_HOME__|$PWD|g" -e "s|__VENV__|$PWD/.venv|g" \
+         infra/com.mukoo.model-refresh.plist > ~/Library/LaunchAgents/com.mukoo.model-refresh.plist
        launchctl load ~/Library/LaunchAgents/com.mukoo.model-refresh.plist
+
+     `make autorefresh-install` does exactly that substitution for you.
 
      Remove:
 
        launchctl unload ~/Library/LaunchAgents/com.mukoo.model-refresh.plist
        rm ~/Library/LaunchAgents/com.mukoo.model-refresh.plist
 
-     Log: ~/mukoo/refresh.log (one line per run that did work or failed). -->
+     launchd agents do not read your shell profile, so DATABASE_URL has to be
+     set here — but a connection string with a real password does not belong in
+     a committed file, so this carries __DATABASE_URL__ and the Makefile
+     substitutes the live value into the *installed* copy only.
+
+     Log: __MUKOO_HOME__/refresh.log (one line per run that did work or failed). -->
 <plist version="1.0">
 <dict>
   <key>Label</key>
   <string>com.mukoo.model-refresh</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/Users/jefferyhuang/mukoo/.venv/bin/mukoo-refresh</string>
+    <string>__VENV__/bin/mukoo-refresh</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict>
     <key>DATABASE_URL</key>
-    <string>postgresql+psycopg2://mukoo:mukoo@localhost:5432/mukoo</string>
+    <string>__DATABASE_URL__</string>
     <!-- Collapse runs of consecutive identical (rsrp, rsrq, sinr) samples to
          their first sample: the logger samples every ~3.5 s but the modem
          refreshes its signal report far more slowly, so ~86% of rows are one
@@ -39,14 +50,14 @@
        died with "[Errno 30] Read-only file system: 'cache'" once there was new
        data to actually work on. -->
   <key>WorkingDirectory</key>
-  <string>/Users/jefferyhuang/mukoo</string>
+  <string>__MUKOO_HOME__</string>
   <key>StartInterval</key>
   <integer>900</integer>
   <key>RunAtLoad</key>
   <true/>
   <key>StandardOutPath</key>
-  <string>/Users/jefferyhuang/mukoo/refresh.log</string>
+  <string>__MUKOO_HOME__/refresh.log</string>
   <key>StandardErrorPath</key>
-  <string>/Users/jefferyhuang/mukoo/refresh.log</string>
+  <string>__MUKOO_HOME__/refresh.log</string>
 </dict>
 </plist>
