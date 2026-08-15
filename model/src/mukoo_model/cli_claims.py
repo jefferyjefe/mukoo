@@ -31,25 +31,22 @@ BBOX_MARGIN_DEG = 0.01
 
 
 def _load_measurements(
-    database_url: str, *, where: "str | None" = None
+    database_url: str,
 ) -> "tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]":
     """(id, lon, lat, rsrp) for every non-null-RSRP measurement, by id.
 
     Raw rows, deliberately not the collapsed kriging cloud: a claims report
     should count every individual sample the phone recorded.
     """
-    predicate = "rsrp IS NOT NULL"
-    if where:
-        predicate = f"({predicate}) AND ({where})"
     sql = text(
-        f"SELECT id, ST_X(geom) AS lon, ST_Y(geom) AS lat, rsrp "
-        f"FROM measurements WHERE {predicate} ORDER BY id"
+        "SELECT id, ST_X(geom) AS lon, ST_Y(geom) AS lat, rsrp "
+        "FROM measurements WHERE rsrp IS NOT NULL ORDER BY id"
     )
     engine = make_engine(database_url)
     with engine.connect() as conn:
         rows = conn.execute(sql).all()
     if not rows:
-        raise ValueError("no measurements with non-null rsrp" + (f" matching {where!r}" if where else ""))
+        raise ValueError("no measurements with non-null rsrp")
     ids = np.array([r.id for r in rows], dtype=np.int64)
     lon = np.array([r.lon for r in rows], dtype=np.float64)
     lat = np.array([r.lat for r in rows], dtype=np.float64)
@@ -78,7 +75,6 @@ def main(argv: "list[str] | None" = None) -> int:
         "(matches drive data; default), 0 = outdoor stationary",
     )
     parser.add_argument("--database-url", default=None, help="override DATABASE_URL")
-    parser.add_argument("--where", default=None, help="extra SQL predicate (ANDed)")
     parser.add_argument("--out-dir", default=None, help="output dir (default ~/mukoo)")
     parser.add_argument(
         "--prefix",
@@ -96,7 +92,7 @@ def main(argv: "list[str] | None" = None) -> int:
 
     try:
         ids, lon, lat, rsrp = _load_measurements(
-            config.database_url, where=args.where
+            config.database_url
         )
         bbox = (
             float(lon.min()) - BBOX_MARGIN_DEG,

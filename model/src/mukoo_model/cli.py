@@ -83,7 +83,6 @@ def main(argv: list[str] | None = None) -> int:
         choices=["rsrp", "rsrq", "sinr"],
         help="signal column to interpolate (default: rsrp)",
     )
-    parser.add_argument("--where", default=None, help="extra SQL predicate (ANDed)")
     parser.add_argument(
         "--cell-m", type=float, default=Config.cell_metres, help="grid cell size (m)"
     )
@@ -193,7 +192,6 @@ def main(argv: list[str] | None = None) -> int:
         result = run(
             config,
             metric=args.metric,
-            where=args.where,
             prefix=prefix,
             on_cv=report_cv,
         )
@@ -217,7 +215,6 @@ def _compare(config: Config, args: argparse.Namespace) -> int:
     cloud = load_rsrp_points(
         make_engine(config.database_url),
         metric=args.metric,
-        where=args.where,
         dedupe_runs=config.dedupe_runs,
         min_session_rows=config.min_session_rows,
     )

@@ -42,7 +42,7 @@ mukoo-krige --compare         # model shoot-out, judged by session CV
 ```
 
 Other flags: `--variogram-model`, `--cell-m` (150), `--folds`, `--block-m`
-(2000), `--out-dir`, `--metric {rsrp,rsrq,sinr}`, `--where`, `--none-floor`,
+(2000), `--out-dir`, `--metric {rsrp,rsrq,sinr}`, `--none-floor`,
 `--dedupe-runs` / `--no-dedupe-runs`, `--lag-spacing`, `--max-lag-m`, `--nlags`,
 `--support-range-multiple` (1.0).
 
@@ -141,8 +141,8 @@ mukoo-claims --gpkg ~/Downloads/bdc_13_131425_4GLTE_mobile_broadband_h3_*.gpkg
 ```
 
 `--environment 1` (default) keeps the in-vehicle claim — the like-for-like
-comparison for drive data; `0` selects the outdoor-stationary claim. `--where`
-narrows the measurements (e.g. one session), `--prefix` names the outputs.
+comparison for drive data; `0` selects the outdoor-stationary claim; `--prefix`
+names the outputs.
 
 ## Drive suggestions (active learning)
 

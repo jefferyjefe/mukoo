@@ -162,15 +162,16 @@ def test_dedupe_also_treats_a_shared_modem_stamp_as_a_reread():
     assert "s._prev_modem IS NOT NULL" in select
 
 
-def test_dedupe_applies_caller_where_to_both_queries():
+def test_dedupe_count_uses_the_same_predicate_as_the_select():
     conn = _FakeConn(_three_rows(), count=5)
     load_rsrp_points(
-        _FakeEngine(conn), metric="rsrp", where="carrier = 'Verizon'", dedupe_runs=True
+        _FakeEngine(conn), metric="rsrp", none_floor=-127.0, dedupe_runs=True
     )
     select, count = conn.statements
-    # The count must use the same predicate, or n_dedupe_dropped is meaningless.
-    assert "carrier = 'Verizon'" in select
-    assert "carrier = 'Verizon'" in count
+    # The count must use the same predicate, or n_dedupe_dropped compares two
+    # different populations and is meaningless.
+    assert "network_type = 'none'" in select
+    assert "network_type = 'none'" in count
     assert "lag(" not in count  # the baseline count is un-deduped by definition
 
 

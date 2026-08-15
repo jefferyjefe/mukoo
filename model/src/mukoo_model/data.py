@@ -57,8 +57,8 @@ WGS84_EPSG = 4326
 # * ``IS NOT DISTINCT FROM`` so that NULL == NULL counts as unchanged; a
 #   dead-zone stretch (null metric) collapses like any other repeated reading.
 # * ``m.*`` passes every original column through, so the outer query's
-#   predicates — including a caller-supplied ``where`` — still see the full
-#   table. The subquery is aliased ``measurements`` for the same reason.
+#   predicates still see the full table. The subquery is aliased
+#   ``measurements`` for the same reason.
 _RUN_START_SUBQUERY = """(
     SELECT * FROM (
         SELECT m.*,
@@ -203,7 +203,6 @@ def load_rsrp_points(
     engine: Engine,
     *,
     metric: str = "rsrp",
-    where: str | None = None,
     none_floor: float | None = None,
     dedupe_runs: bool = False,
     min_session_rows: int = 1,
@@ -211,10 +210,12 @@ def load_rsrp_points(
     """Load non-null ``metric`` measurements from PostGIS into a PointCloud.
 
     Only ``rsrp``/``rsrq``/``sinr`` are accepted for ``metric`` (they are the
-    numeric signal columns); the value is parameter-free SQL identifier so it is
-    validated against that allowlist rather than interpolated blindly. ``where``
-    is an optional extra SQL predicate (e.g. a carrier or time filter), ANDed in.
-    Rows are ordered by ``id`` so a run is reproducible.
+    numeric signal columns); the value is a parameter-free SQL identifier so it
+    is validated against that allowlist rather than interpolated blindly. Every
+    other value that reaches the SQL below is either a bound parameter or a
+    number this module produced, so no caller-supplied string is ever
+    interpolated into a query. Rows are ordered by ``id`` so a run is
+    reproducible.
 
     ``none_floor`` (RSRP only) additionally loads dead-zone rows —
     ``network_type = 'none'``, where the metric is null because there was
@@ -248,8 +249,6 @@ def load_rsrp_points(
     if none_floor is not None:
         predicate = f"({metric} IS NOT NULL OR network_type = 'none')"
         value_expr = f"coalesce({metric}, {float(none_floor)})"
-    if where:
-        predicate = f"({predicate}) AND ({where})"
 
     # Drop sessions too small to be a real drive. A start that records one or two
     # samples is a phantom service start, not a drive, and it does real damage to
@@ -300,10 +299,7 @@ def load_rsrp_points(
                 ).all()
             )
     if not rows:
-        raise ValueError(
-            f"No measurements with non-null {metric}"
-            + (f" matching {where!r}" if where else "")
-        )
+        raise ValueError(f"No measurements with non-null {metric}")
 
     lon = np.array([r.lon for r in rows], dtype=np.float64)
     lat = np.array([r.lat for r in rows], dtype=np.float64)

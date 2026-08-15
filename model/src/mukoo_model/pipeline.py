@@ -163,7 +163,6 @@ def run(
     config: Config,
     *,
     metric: str = "rsrp",
-    where: Optional[str] = None,
     prefix: str = "rsrp_kriging",
     kriging: Optional[str] = None,
     anisotropy_scaling: Optional[float] = None,
@@ -192,7 +191,6 @@ def run(
     cloud = load_rsrp_points(
         engine,
         metric=metric,
-        where=where,
         none_floor=config.none_floor if metric == "rsrp" else None,
         dedupe_runs=config.dedupe_runs,
         min_session_rows=config.min_session_rows,
