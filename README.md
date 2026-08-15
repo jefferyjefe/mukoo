@@ -47,6 +47,20 @@ hexes into PostGIS, and a SQL `ST_Contains` spatial join. Both paths return the
 same 1,681 in-claim points, the same 1,673 violations, the same −22.09 dB
 average gap, and the same −54.0 dB worst gap.
 
+That second path is
+[`docs/verify_claims_postgis.py`](docs/verify_claims_postgis.py) — run it
+yourself. It shares no code with `mukoo-claims`: different GeoPackage reader,
+different geometry engine, different spatial index, and the predicate is SQL
+rather than Python. It also reports how many points sit exactly on a hex
+boundary, where the two paths' containment rules differ; on this data, none do.
+
+```bash
+python docs/verify_claims_postgis.py --gpkg ~/Downloads/bdc_13_*.gpkg
+```
+
+Needs the `ogr2ogr` binary (`brew install gdal` / `apt install gdal-bin`); the
+Python side uses only `psycopg2`, which arrives with `mukoo-ingest`.
+
 This is the kind of ground-truth evidence an FCC coverage-availability challenge
 is built on. *No challenge has been filed* — this repository is the measurement
 and analysis pipeline behind the numbers.
