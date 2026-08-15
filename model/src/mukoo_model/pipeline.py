@@ -25,7 +25,7 @@ from .crossval import CVResult, block_cv, kfold_cv, session_cv
 from .data import PointCloud, load_rsrp_points
 from .db import make_engine
 from .export import build_report, write_report_json, write_surfaces
-from .kriging import OrdinaryKrigingModel, SurfaceResult, make_grid
+from .kriging import Grid, OrdinaryKrigingModel, SurfaceResult, make_grid
 from .regression import PathLossKrigingModel
 
 
@@ -90,6 +90,38 @@ def make_model_factory(
         )
 
     return factory
+
+
+def support_radius_m(model: object, config: Config) -> "float | None":
+    """How far from a measurement the fitted model is still worth asking.
+
+    The radius is read off the *fitted* variogram rather than fixed in config:
+    the range is the distance at which a reading stops saying anything about its
+    neighbours, so it is exactly the scale on which "we have no data here" is
+    true. Returns None — predict every cell, as before this existed — when
+    masking is switched off, or when the fitted family has no range at all
+    (linear and power variograms never plateau, so guessing a radius from them
+    would be inventing one).
+    """
+    multiple = float(config.support_range_multiple)
+    if multiple <= 0.0:
+        return None
+    range_m = model.variogram_params.get("range_m")  # type: ignore[attr-defined]
+    return None if range_m is None else float(range_m) * multiple
+
+
+def support_report_fields(grid: Grid) -> "tuple[float | None, int | None]":
+    """The report's ``support_radius_m`` and ``n_supported_cells`` for a grid.
+
+    Both are None on an unmasked grid, which is how ``build_report`` says "no
+    masking ran". ``Grid.n_supported`` answers a different question — how many
+    cells get predicted — and its unmasked answer, every cell, is true but reads
+    in the report as a radius that happened to keep everything, which is the one
+    reading the pair of nulls exists to rule out.
+    """
+    if grid.support is None:
+        return (None, None)
+    return (grid.support_radius_m, grid.n_supported)
 
 
 def run_cvs(
@@ -183,14 +215,23 @@ def run(
         on_cv=on_cv,
     )
 
-    # 2. Fit on everything and predict the surface + uncertainty.
+    # 2. Fit on everything and predict the surface + uncertainty. The fit has to
+    #    come first: the grid's support radius is derived from the variogram it
+    #    fits, so there is nothing to mask against until the model exists.
     model = factory()
     model.fit(cloud)
-    grid = make_grid(cloud, cell_m=config.cell_metres)
+    grid = make_grid(
+        cloud,
+        cell_m=config.cell_metres,
+        support_radius_m=support_radius_m(model, config),
+    )
     surface = model.predict_grid(grid)
 
     # 3. Export rasters + JSON report.
     surface_paths = write_surfaces(config.output_dir, surface, prefix=prefix)
+    # Read off the grid rather than recomputed here, so the report always
+    # describes the mask that was actually predicted against.
+    support_radius, n_supported = support_report_fields(surface.grid)
     report = build_report(
         surface,
         cvs,
@@ -202,6 +243,8 @@ def run(
         n_dedupe_dropped=cloud.n_dedupe_dropped,
         min_session_rows=config.min_session_rows,
         excluded_sessions=cloud.excluded_sessions,
+        support_radius_m=support_radius,
+        n_supported_cells=n_supported,
     )
     report_path = write_report_json(
         Path(config.output_dir) / f"{prefix}_report.json", report
