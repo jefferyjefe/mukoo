@@ -74,19 +74,42 @@ def expected_reduction_scores(
     C(d) = exp(−3d/range) (the exponential model's effective-range decay).
     Driving where uncertainty is high *and* surrounded by more uncertain area
     beats an equally-uncertain but isolated cell — which raw σ ranking misses.
+
+    The sum runs over a window of cells around each candidate rather than the
+    whole grid. That is the same arithmetic — C(d) is zero past the range, so
+    distant cells contribute nothing either way — but it stops the cost scaling
+    with the survey's bounding box. One 150 km drive stretched this grid to
+    554k cells; against ~74k candidates the all-pairs distance matrix would be
+    ~300 GB, while the window is a few thousand cells wide whatever the box does.
+    Cells left NaN by the support mask are worth zero: they were never
+    predicted, so there is no uncertainty there for a drive to reduce.
     """
-    xx, yy = np.meshgrid(grid.x, grid.y)
-    cx = xx.ravel()
-    cy = yy.ravel()
-    var = np.nan_to_num(stddev.ravel() ** 2, nan=0.0)
-    # (n_cand, n_cells) distances; ~600×6.4k doubles ≈ 30 MB — fine in one shot.
-    d = np.sqrt(
-        (np.asarray(cand_x)[:, None] - cx[None, :]) ** 2
-        + (np.asarray(cand_y)[:, None] - cy[None, :]) ** 2
-    )
-    decay = np.exp(-3.0 * d / float(range_m))
-    decay[d > range_m] = 0.0  # beyond the range a reading tells you ~nothing
-    return decay @ var
+    cand_x = np.asarray(cand_x, dtype=np.float64)
+    cand_y = np.asarray(cand_y, dtype=np.float64)
+    var = np.nan_to_num(np.asarray(stddev) ** 2, nan=0.0)
+    nrows, ncols = var.shape
+    range_m = float(range_m)
+    # Half-width of the window, in cells. A candidate sits on a road, up to half
+    # a cell off the nearest cell centre, hence the extra cell of slack: every
+    # cell within range_m of the candidate must fall inside the window.
+    half = int(np.ceil(range_m / grid.cell_m)) + 1
+
+    scores = np.zeros(cand_x.shape[0], dtype=np.float64)
+    for k in range(cand_x.shape[0]):
+        j0 = int(round((cand_x[k] - grid.x[0]) / grid.cell_m))
+        i0 = int(round((cand_y[k] - grid.y[0]) / grid.cell_m))
+        cols = slice(max(j0 - half, 0), min(j0 + half + 1, ncols))
+        rows = slice(max(i0 - half, 0), min(i0 + half + 1, nrows))
+        block = var[rows, cols]
+        if block.size == 0:
+            continue
+        dx = grid.x[cols] - cand_x[k]
+        dy = grid.y[rows] - cand_y[k]
+        d = np.sqrt(dy[:, None] ** 2 + dx[None, :] ** 2)
+        decay = np.exp(-3.0 * d / range_m)
+        decay[d > range_m] = 0.0  # beyond the range a reading tells you ~nothing
+        scores[k] = float((decay * block).sum())
+    return scores
 
 
 def weakness_weight(pred_dbm: np.ndarray, *, weak_bias: float) -> np.ndarray:

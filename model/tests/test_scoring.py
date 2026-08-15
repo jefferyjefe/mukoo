@@ -21,6 +21,57 @@ def _grid(n=21):
     return Grid(x=ax.copy(), y=ax.copy(), crs_epsg=32617, cell_m=CELL)
 
 
+def _all_pairs_evr(stddev, grid, cand_x, cand_y, *, range_m):
+    """The original every-candidate-against-every-cell formulation.
+
+    Kept here as the definition the windowed implementation has to match: the
+    window is an optimisation for a 554k-cell grid, not a change of answer.
+    """
+    xx, yy = np.meshgrid(grid.x, grid.y)
+    var = np.nan_to_num(stddev.ravel() ** 2, nan=0.0)
+    d = np.sqrt(
+        (np.asarray(cand_x)[:, None] - xx.ravel()[None, :]) ** 2
+        + (np.asarray(cand_y)[:, None] - yy.ravel()[None, :]) ** 2
+    )
+    decay = np.exp(-3.0 * d / float(range_m))
+    decay[d > range_m] = 0.0
+    return decay @ var
+
+
+def test_evr_matches_the_all_pairs_reference():
+    grid = _grid()
+    rng = np.random.RandomState(3)
+    sig = rng.uniform(2.0, 11.0, size=grid.shape)
+    cand_x = rng.uniform(0.0, 10000.0, size=25)
+    cand_y = rng.uniform(0.0, 10000.0, size=25)
+    for range_m in (700.0, 2000.0, 40000.0):
+        got = expected_reduction_scores(sig, grid, cand_x, cand_y, range_m=range_m)
+        want = _all_pairs_evr(sig, grid, cand_x, cand_y, range_m=range_m)
+        assert np.allclose(got, want, rtol=1e-12)
+
+
+def test_evr_treats_unpredicted_cells_as_worth_nothing():
+    # NaN is "never predicted here", not "very uncertain here": masking a
+    # neighbourhood must lower a candidate's score, never raise it or poison it.
+    grid = _grid()
+    sig = np.full(grid.shape, 6.0)
+    masked = sig.copy()
+    masked[:, 12:] = np.nan
+    scores = expected_reduction_scores(
+        masked, grid, np.array([3000.0, 6500.0]), np.array([5000.0, 5000.0]),
+        range_m=2000.0,
+    )
+    assert np.isfinite(scores).all()
+    assert scores[0] > scores[1] > 0.0  # the one out in the mask informs less
+    assert np.allclose(
+        scores,
+        _all_pairs_evr(
+            masked, grid, np.array([3000.0, 6500.0]), np.array([5000.0, 5000.0]),
+            range_m=2000.0,
+        ),
+    )
+
+
 def test_evr_prefers_uncertainty_mass_over_isolated_peak():
     grid = _grid()
     sig = np.full(grid.shape, 3.0)
