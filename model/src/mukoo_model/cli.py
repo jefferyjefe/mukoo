@@ -12,7 +12,7 @@ import argparse
 import sys
 from dataclasses import replace
 
-from .config import Config, parse_anisotropy
+from .config import Config, parse_anisotropy, parse_support_range_multiple
 from .crossval import CVResult
 from .pipeline import run
 
@@ -37,6 +37,8 @@ def _build_config(args: argparse.Namespace) -> Config:
         config = replace(config, lag_spacing=args.lag_spacing)
     if args.max_lag_m is not None:
         config = replace(config, max_lag_m=args.max_lag_m)
+    if args.support_range_multiple is not None:
+        config = replace(config, support_range_multiple=args.support_range_multiple)
     return replace(
         config,
         cell_metres=args.cell_m,
@@ -56,6 +58,14 @@ def _parse_anisotropy(value: str) -> "tuple[float, float]":
         raise argparse.ArgumentTypeError(
             "expected SCALING:ANGLE, e.g. 2:60"
         ) from exc
+
+
+def _parse_support_range_multiple(value: str) -> float:
+    """--support-range-multiple K, sharing MUKOO_SUPPORT_RANGE_MULTIPLE's parser."""
+    try:
+        return parse_support_range_multiple(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -107,6 +117,16 @@ def main(argv: list[str] | None = None) -> int:
         metavar="M",
         help="longest lag used to fit the variogram (default: all pairs). "
         "Only helps if the variogram plateaus below the cap",
+    )
+    parser.add_argument(
+        "--support-range-multiple",
+        type=_parse_support_range_multiple,
+        default=None,
+        metavar="K",
+        help="leave grid cells further than K variogram ranges from any "
+        "measurement unpredicted (NaN) instead of kriging the whole bounding "
+        "box; 0 predicts everything, negative is rejected "
+        "(default: MUKOO_SUPPORT_RANGE_MULTIPLE env, else 1)",
     )
     parser.add_argument(
         "--folds", type=int, default=Config.cv_folds, help="k for k-fold CV"

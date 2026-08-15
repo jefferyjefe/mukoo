@@ -99,6 +99,18 @@ DEFAULT_DEDUPE_RUNS = False
 # to a handful of points. Set to 1 to disable. See MUKOO_MIN_SESSION_ROWS.
 DEFAULT_MIN_SESSION_ROWS = 3
 
+# How far from a measurement the surface is still predicted, as a multiple of
+# the fitted variogram range: cells beyond it are left NaN instead of kriged.
+# The grid spans the bounding box of the drives, so one 150 km trip stretched it
+# to 161 x 76 km — 553k cells, nearly all of them far enough from any reading
+# that kriging just returns the global mean at maximum variance. That is wasted
+# compute, and it hands the suggester a "highest uncertainty" map whose winners
+# are all empty countryside. One range is the natural cutoff: past it a reading
+# tells you nothing about its neighbours by definition. Set to 0 via
+# MUKOO_SUPPORT_RANGE_MULTIPLE to predict the whole box, as builds before this
+# setting existed did.
+DEFAULT_SUPPORT_RANGE_MULTIPLE = 1.0
+
 # Variogram anisotropy (scaling, angle-deg CCW from east) for ordinary kriging.
 # (1.0, 0.0) = isotropic. Settable via MUKOO_ANISOTROPY as "SCALING:ANGLE"
 # (e.g. "3:150") so a winner found by `mukoo-krige --compare` can be adopted by
@@ -127,6 +139,24 @@ def parse_anisotropy(value: str) -> "tuple[float, float]":
         ) from exc
 
 
+def parse_support_range_multiple(value: str) -> float:
+    """Parse a grid-support radius multiple: any float >= 0 (0 disables masking).
+
+    Rejected rather than waved through, because a negative multiple is not the
+    "mask everything" it looks like: ``pipeline.support_radius_m`` treats any
+    multiple at or below zero as masking-off, so a typo would quietly hand back
+    the whole 553k-cell bounding box while reading like a tightened radius.
+    Shared with the ``--support-range-multiple`` flag so the two entry points
+    cannot drift apart on what they accept or what it means.
+    """
+    multiple = float(value)
+    if multiple < 0.0:
+        raise ValueError(
+            f"support range multiple must be >= 0 (0 disables masking), got {value!r}"
+        )
+    return multiple
+
+
 @dataclass(frozen=True)
 class Config:
     database_url: str = DEFAULT_DATABASE_URL
@@ -144,6 +174,7 @@ class Config:
     min_session_rows: int = DEFAULT_MIN_SESSION_ROWS
     lag_spacing: str = DEFAULT_LAG_SPACING
     max_lag_m: "float | None" = DEFAULT_MAX_LAG_M
+    support_range_multiple: float = DEFAULT_SUPPORT_RANGE_MULTIPLE
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -163,6 +194,7 @@ class Config:
             )
         max_lag_raw = os.environ.get("MUKOO_MAX_LAG_M")
         min_rows_raw = os.environ.get("MUKOO_MIN_SESSION_ROWS")
+        support_raw = os.environ.get("MUKOO_SUPPORT_RANGE_MULTIPLE")
         return cls(
             database_url=os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL),
             output_dir=Path(out) if out else DEFAULT_OUTPUT_DIR,
@@ -176,5 +208,10 @@ class Config:
             max_lag_m=float(max_lag_raw) if max_lag_raw else DEFAULT_MAX_LAG_M,
             min_session_rows=(
                 int(min_rows_raw) if min_rows_raw else DEFAULT_MIN_SESSION_ROWS
+            ),
+            support_range_multiple=(
+                parse_support_range_multiple(support_raw)
+                if support_raw
+                else DEFAULT_SUPPORT_RANGE_MULTIPLE
             ),
         )
