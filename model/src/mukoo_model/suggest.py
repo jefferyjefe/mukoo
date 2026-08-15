@@ -4,11 +4,14 @@ Where should the next drive go to shrink the model's uncertainty the most? The
 kriging *standard deviation* surface answers "where is the model least sure",
 but a suggestion is only useful if you can drive there. So we:
 
-1. take the grid cells whose uncertainty is in the top ``candidate_quantile``;
+1. take the grid cells whose uncertainty is in the top ``candidate_quantile``
+   of the cells that were actually predicted (cells the support mask left NaN
+   are not uncertain, they are unknown, and never become targets);
 2. snap each onto the nearest road and drop any with no road within
-   ``max_road_dist_m`` (uncertain but unreachable — e.g. mid-field);
-3. rank the reachable ones by the uncertainty *at the on-road point* (that is
-   what a drive there would actually reduce);
+   ``max_road_dist_m`` (uncertain but unreachable — e.g. mid-field), and any
+   whose road turns out to lie back outside the predicted region;
+3. rank the survivors by the uncertainty *at the on-road point* (that is what a
+   drive there would actually reduce);
 4. greedily pick the top ``top_n`` while enforcing a ``min_separation_m`` gap, so
    the list spreads out instead of clustering in one hot corner — each drive
    then adds distinct information.
@@ -123,6 +126,41 @@ def weakness_weight(pred_dbm: np.ndarray, *, weak_bias: float) -> np.ndarray:
     return 1.0 + weak_bias * w
 
 
+def candidate_cells(
+    stddev: np.ndarray,
+    grid: Grid,
+    *,
+    candidate_quantile: float = DEFAULT_CANDIDATE_QUANTILE,
+) -> "tuple[np.ndarray, np.ndarray, np.ndarray]":
+    """The ``(x, y, sigma)`` of every cell uncertain enough to become a target.
+
+    A cell qualifies when its uncertainty is finite and at or above the
+    ``candidate_quantile`` of the *finite* cells only. Cells outside the
+    model's supported region are NaN, and once the survey's bounding box is
+    stretched by a single long drive they are the overwhelming majority: a
+    quantile taken over the whole array would sit below every real value, every
+    cell would qualify, and the "most uncertain" targets would all be empty
+    countryside 100 km from the nearest reading. An unpredicted cell has no
+    uncertainty to reduce, so the only defensible reading is to ignore it.
+
+    Returned in grid row-major order, which is the order the suggester breaks
+    ties in. Split out from :func:`suggest_targets` so the road fetch can be
+    bounded by exactly the cells that can end up as targets, before any roads
+    exist — the scoring never needs them.
+    """
+    if not 0.0 <= candidate_quantile < 1.0:
+        raise ValueError("candidate_quantile must be in [0, 1)")
+    flat_s = np.asarray(stddev).ravel()
+    finite = np.isfinite(flat_s)
+    if not finite.any():
+        empty = np.empty(0, dtype=np.float64)
+        return empty, empty.copy(), empty.copy()
+    threshold = float(np.quantile(flat_s[finite], candidate_quantile))
+    idx = np.where(finite & (flat_s >= threshold))[0]
+    xx, yy = np.meshgrid(grid.x, grid.y)  # (nrows, ncols), matches stddev
+    return xx.ravel()[idx], yy.ravel()[idx], flat_s[idx]
+
+
 def _sample_nearest(stddev: np.ndarray, grid: Grid, x: float, y: float) -> float:
     """Uncertainty value at the grid cell nearest to ``(x, y)`` (NaN if empty)."""
     j = int(round((x - grid.x[0]) / grid.cell_m))
@@ -156,6 +194,11 @@ def suggest_targets(
     score (back-compatible). With ``mean`` and ``weak_bias`` > 0 the score is
     multiplied by :func:`weakness_weight`, favouring probably-bad coverage.
 
+    A candidate is dropped when the road it snaps to falls on a cell the support
+    mask left NaN: the reported ``stddev`` is the uncertainty *at the on-road
+    point*, and where the model predicted nothing there is no such number to
+    report. On an unmasked (all-finite) surface this can never fire.
+
     Selection is greedy and overlap-aware: after each pick, remaining
     candidates lose the score share already covered by the picked point
     (1 − C(d)), so the list spreads to *informationally* distinct spots; the
@@ -168,30 +211,26 @@ def suggest_targets(
         raise ValueError(
             f"roads CRS EPSG:{roads.crs_epsg} != grid CRS EPSG:{grid.crs_epsg}"
         )
-    if not 0.0 <= candidate_quantile < 1.0:
-        raise ValueError("candidate_quantile must be in [0, 1)")
-
-    xx, yy = np.meshgrid(grid.x, grid.y)  # (nrows, ncols), matches stddev
-    flat_x = xx.ravel()
-    flat_y = yy.ravel()
-    flat_s = stddev.ravel()
-
-    finite = np.isfinite(flat_s)
-    if not finite.any():
-        return []
-    threshold = float(np.quantile(flat_s[finite], candidate_quantile))
-    candidate_idx = np.where(finite & (flat_s >= threshold))[0]
+    cell_x, cell_y, _ = candidate_cells(
+        stddev, grid, candidate_quantile=candidate_quantile
+    )
 
     # Snap every candidate cell onto the nearest road; keep the reachable ones.
     sigmas: list = []
     nears: list = []
-    for k in candidate_idx:
-        near = roads.nearest(float(flat_x[k]), float(flat_y[k]))
+    for k in range(cell_x.shape[0]):
+        near = roads.nearest(float(cell_x[k]), float(cell_y[k]))
         if near.distance_m > max_road_dist_m:
             continue
         on_road_sigma = _sample_nearest(stddev, grid, near.point_x, near.point_y)
         if not np.isfinite(on_road_sigma):
-            on_road_sigma = float(flat_s[k])
+            # Reachable, but the road runs off the edge of what the model
+            # predicted. There is no uncertainty there for a drive to reduce and
+            # no honest sigma to publish: substituting the candidate cell's
+            # would ship a target labelled with a *different* cell's number.
+            # Roads leave the supported region exactly at the mask boundary, so
+            # without this the geojson fills up with them.
+            continue
         sigmas.append(on_road_sigma)
         nears.append(near)
     if not nears:

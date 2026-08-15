@@ -15,6 +15,7 @@ from mukoo_model.kriging import Grid
 from mukoo_model.roads import RoadNetwork
 from mukoo_model.suggest import (
     Suggestion,
+    candidate_cells,
     suggest_targets,
     suggestions_to_geojson,
     write_suggestions_geojson,
@@ -134,6 +135,103 @@ def test_nan_cells_ignored():
     out = suggest_targets(sig, grid, _roads(), top_n=5, max_road_dist_m=400.0)
     assert out
     assert all(np.isfinite(s.stddev) for s in out)
+
+
+def test_all_finite_surface_selects_exactly_what_a_plain_quantile_would():
+    # No support mask, nothing masked out: selection must be bit-for-bit the
+    # behaviour that existed before NaN was ever a possibility.
+    grid = _grid()
+    sig = np.random.RandomState(0).uniform(2.0, 11.0, size=grid.shape)
+    x, y, sigma = candidate_cells(sig, grid, candidate_quantile=0.70)
+
+    expect = np.where(sig.ravel() >= np.quantile(sig, 0.70))[0]
+    xx, yy = np.meshgrid(grid.x, grid.y)
+    assert np.array_equal(x, xx.ravel()[expect])
+    assert np.array_equal(y, yy.ravel()[expect])
+    assert np.array_equal(sigma, sig.ravel()[expect])
+
+
+def test_candidate_quantile_is_taken_over_finite_cells_only():
+    # A masked surface is mostly NaN. Taken over the whole array the threshold
+    # is meaningless; taken over the ~5% that were predicted it still separates
+    # the uncertain cells from the confident ones.
+    grid = _grid()
+    sig = np.full(grid.shape, np.nan)
+    sig[10, :] = np.linspace(3.0, 9.0, grid.shape[1])  # the supported corridor
+
+    x, y, sigma = candidate_cells(sig, grid, candidate_quantile=0.70)
+    n_finite = int(np.isfinite(sig).sum())
+    assert np.isfinite(sigma).all()
+    assert np.allclose(y, 5000.0)  # every candidate is in the corridor
+    # ~30% of the *finite* cells, not ~30% of the 441-cell array.
+    assert 0.2 * n_finite <= x.size <= 0.4 * n_finite
+    assert sigma.min() >= np.quantile(sig[10, :], 0.70)
+
+
+def test_targets_land_on_finite_cells_when_the_surface_is_mostly_nan():
+    grid = _grid()
+    sig = np.full(grid.shape, np.nan)
+    sig[10, :] = 4.0  # the corridor along Main St is all that was predicted
+    sig[10, 4] = 9.0  # x=2000
+    sig[10, 16] = 8.5  # x=8000
+    out = suggest_targets(
+        sig, grid, _roads(), top_n=3, max_road_dist_m=400.0, min_separation_m=1000.0
+    )
+    assert out
+    assert all(np.isfinite(s.stddev) for s in out)
+    assert all(np.isclose(s.y, 5000.0) for s in out)  # never out in the NaN
+    assert np.isclose(out[0].x, 2000.0)
+
+
+def test_target_dropped_when_its_road_leaves_the_supported_region():
+    # The mask boundary is exactly where roads leave the predicted region, so
+    # this is the systematic case, not a corner: the corridor is predicted at
+    # y=5000 and the only road runs 400 m north of it — close enough to be
+    # "reachable", far enough that every snapped target lands on a cell the
+    # model never predicted. Publishing those with the candidate cell's sigma
+    # would put a target on uncovered ground labelled with another cell's
+    # uncertainty, straight into rsrp_drive_suggestions.geojson.
+    grid = _grid()
+    sig = np.full(grid.shape, np.nan)
+    sig[10, :] = 6.0  # the supported corridor, y=5000
+    roads = RoadNetwork(
+        lines=[LineString([(0, 5400), (10000, 5400)])],
+        names=["Ridge Rd"],
+        crs_epsg=32617,
+    )
+    out = suggest_targets(
+        sig, grid, roads, top_n=5, max_road_dist_m=500.0, min_separation_m=1000.0
+    )
+    assert out == []
+
+
+def test_reported_stddev_is_the_one_at_the_snapped_point():
+    # Same geometry, but the road's own row was predicted too. The suggestion
+    # must then carry the sigma where the drive would actually happen (4.0),
+    # not the sigma of the hot cell that nominated it (9.0).
+    grid = _grid()
+    sig = np.full(grid.shape, np.nan)
+    sig[10, :] = 6.0  # y=5000, the cells that become candidates
+    sig[11, :] = 4.0  # y=5500, where the road snaps to
+    sig[10, 4] = 9.0
+    roads = RoadNetwork(
+        lines=[LineString([(0, 5400), (10000, 5400)])],
+        names=["Ridge Rd"],
+        crs_epsg=32617,
+    )
+    out = suggest_targets(
+        sig, grid, roads, top_n=1, max_road_dist_m=500.0, min_separation_m=1000.0
+    )
+    assert out
+    assert np.isclose(out[0].y, 5400.0)
+    assert np.isclose(out[0].stddev, 4.0)
+
+
+def test_all_nan_surface_yields_no_targets():
+    grid = _grid()
+    sig = np.full(grid.shape, np.nan)
+    assert candidate_cells(sig, grid)[0].size == 0
+    assert suggest_targets(sig, grid, _roads()) == []
 
 
 def test_geojson_structure_and_write(tmp_path):
