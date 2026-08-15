@@ -19,6 +19,12 @@ and tens of kilometres in one pass. The fitted parameters are then handed to
 pykrige via ``variogram_parameters``, so pykrige does the kriging algebra but
 not the variogram estimation. ``lag_spacing="pykrige"`` restores the old
 delegated behaviour.
+
+**Grid support.** The grid spans the bounding box of the drives, which one long
+trip can inflate far beyond the surveyed area. Cells further than
+``make_grid(support_radius_m=...)`` from every measurement are left out of the
+kriging system entirely and come back NaN, so downstream consumers must expect
+NaN in the surfaces. Omitting the radius predicts every cell, as before.
 """
 
 from __future__ import annotations
@@ -29,6 +35,7 @@ import numpy as np
 from pykrige import variogram_models as _vm
 from pykrige.ok import OrdinaryKriging
 from scipy.optimize import least_squares
+from scipy.spatial import cKDTree
 from scipy.spatial.distance import pdist
 
 from .data import PointCloud
@@ -65,6 +72,42 @@ DEFAULT_MIN_PAIRS_PER_LAG = 10
 # Fitting three parameters needs more than three bins to be meaningful; below
 # this we fall back to letting pykrige estimate the variogram itself.
 _MIN_BINS_TO_FIT = 5
+
+# At the peak of one vectorized ``execute`` call pykrige holds about this many
+# float64 arrays of (points x n_data) alive at once: the distance matrix, the
+# right-hand side, its transposed copy, the solve result, its negation, and the
+# two elementwise products that are summed into the mean and the variance.
+_VECTORIZED_WORKING_COPIES = 7
+
+# Transient working set allowed for one ``execute`` call, in bytes. It buys a
+# chunk size rather than being one, because the cost of a chunk scales with the
+# number of *data* points too: a budget in cells alone still lets memory grow
+# without limit as readings accumulate, which is the failure being fixed.
+#
+# 256 MiB is where the trade sits best on the real 49,627-cell 150 m grid.
+# Chunking is not free — pykrige rebuilds and re-inverts the (n_data+1)^2
+# kriging matrix on every call, an O(n_data^3) tax paid per chunk (~160 ms at
+# 3,130 points) — so the budget wants to be as large as the memory ceiling
+# allows. Measured peak RSS at that grid: 0.35 GB at 430 points (the refresh
+# agent's configuration, which launchd was SIGKILLing at 1.15 GB; 1.36 GB
+# before) and 0.60 GB at 3,130 points (9.73 GB before), for 1.4x and 3.4x the
+# runtime. Both stay under the ceiling with room for the caller's own working
+# set, and neither grows with the survey area any more.
+PREDICT_CHUNK_BYTES = 256 * 1024 * 1024
+
+# Floor on the derived chunk, for the pathological case of a cloud so large
+# that the budget buys only a handful of cells per call. Paying the matrix
+# inversion once per cell would be slower than the memory is worth, so past
+# this point the budget yields and memory is allowed to exceed it. It also
+# keeps every batch wide enough for BLAS to stay on its matrix-matrix kernel,
+# which is what makes the chunked result bit-identical rather than merely close.
+_MIN_PREDICT_CHUNK_CELLS = 256
+
+
+def _predict_chunk_cells(n_data: int) -> int:
+    """How many grid cells to hand pykrige in one ``execute`` call."""
+    per_cell = _VECTORIZED_WORKING_COPIES * (n_data + 1) * 8
+    return max(_MIN_PREDICT_CHUNK_CELLS, int(PREDICT_CHUNK_BYTES // per_cell))
 
 
 @dataclass(frozen=True)
@@ -201,16 +244,33 @@ def _params_as_pykrige_dict(variogram_model: str, params: "list[float]") -> dict
 
 @dataclass(frozen=True)
 class Grid:
-    """A regular grid of cell centres in a projected CRS (metres)."""
+    """A regular grid of cell centres in a projected CRS (metres).
+
+    ``support`` marks the cells close enough to a measurement to be worth
+    predicting; ``None`` means every cell is, which is what callers that do not
+    ask for masking keep getting. ``support_radius_m`` records what produced the
+    mask, so a report can say how far "close enough" was — a bare mask cannot be
+    interpreted without it. It stays None for a grid rebuilt from a raster, where
+    the mask survives but the radius that drew it does not.
+    """
 
     x: np.ndarray  # (ncols,) ascending cell-centre eastings
     y: np.ndarray  # (nrows,) ascending cell-centre northings
     cell_m: float
     crs_epsg: int
+    support: "np.ndarray | None" = None  # (nrows, ncols) bool, True = supported
+    support_radius_m: "float | None" = None
 
     @property
     def shape(self) -> tuple[int, int]:
         return (int(self.y.shape[0]), int(self.x.shape[0]))
+
+    @property
+    def n_supported(self) -> int:
+        """How many cells will actually be predicted."""
+        if self.support is None:
+            return int(self.y.shape[0] * self.x.shape[0])
+        return int(np.count_nonzero(self.support))
 
     @property
     def west(self) -> float:
@@ -223,12 +283,48 @@ class Grid:
         return float(self.y[-1] + self.cell_m / 2.0)
 
 
-def make_grid(cloud: PointCloud, *, cell_m: float, pad_m: float = 0.0) -> Grid:
+def _support_mask(
+    gx: np.ndarray, gy: np.ndarray, x: np.ndarray, y: np.ndarray, radius_m: float
+) -> np.ndarray:
+    """True where a cell centre lies within ``radius_m`` of some measurement.
+
+    A cell is supported if *any* point is near enough, so the distance to the
+    nearest one settles it — a KD-tree answers that in a single query per cell
+    (~0.2 s for the 553k x 900 case). The dense alternative, every cell against
+    every point, is 4 GB of float64 to compute a boolean; ``query_ball_point``
+    is no better, as it materialises neighbour lists we would throw away.
+
+    ``query``'s ``distance_upper_bound`` would prune harder still, but it reports
+    a point sitting *exactly* on the bound as out of range, which would make the
+    radius silently exclusive. The pruning is not worth a boundary that disagrees
+    with the documented one.
+    """
+    tree = cKDTree(np.column_stack([x, y]))
+    xx, yy = np.meshgrid(gx, gy)  # (nrows, ncols), row 0 = south, matching Grid
+    nearest, _ = tree.query(np.column_stack([xx.ravel(), yy.ravel()]), k=1)
+    return (nearest <= radius_m).reshape(xx.shape)
+
+
+def make_grid(
+    cloud: PointCloud,
+    *,
+    cell_m: float,
+    pad_m: float = 0.0,
+    support_radius_m: "float | None" = None,
+) -> Grid:
     """Build a grid spanning the cloud's bounding box (optionally padded).
 
     The grid is inclusive of both extremes: ``pad_m`` extends it outward on every
     side, which is useful if you want a margin around the driven roads rather
     than clipping exactly to them.
+
+    ``support_radius_m`` marks cells further than that from every measurement as
+    unsupported, so :meth:`OrdinaryKrigingModel.predict_grid` leaves them NaN
+    instead of spending the kriging system on them. The bounding box is set by
+    the extremes of the drives, so one long trip inflates it enormously — a
+    single 150 km drive stretched this survey to 161 x 76 km, nearly all of it
+    tens of kilometres from any reading. Leaving it unset predicts everything,
+    which is the historical behaviour.
     """
     xmin, ymin, xmax, ymax = cloud.bounds_xy()
     xmin -= pad_m
@@ -238,7 +334,19 @@ def make_grid(cloud: PointCloud, *, cell_m: float, pad_m: float = 0.0) -> Grid:
     # +cell_m so arange includes the far edge; guard against degenerate extents.
     gx = np.arange(xmin, xmax + cell_m, cell_m, dtype=np.float64)
     gy = np.arange(ymin, ymax + cell_m, cell_m, dtype=np.float64)
-    return Grid(x=gx, y=gy, cell_m=float(cell_m), crs_epsg=cloud.crs_epsg)
+    support = (
+        None
+        if support_radius_m is None
+        else _support_mask(gx, gy, cloud.x, cloud.y, float(support_radius_m))
+    )
+    return Grid(
+        x=gx,
+        y=gy,
+        cell_m=float(cell_m),
+        crs_epsg=cloud.crs_epsg,
+        support=support,
+        support_radius_m=support_radius_m,
+    )
 
 
 @dataclass(frozen=True)
@@ -255,7 +363,14 @@ class SurfaceResult:
 
     @property
     def stddev(self) -> np.ndarray:
-        """Kriging standard deviation (same units as the metric, e.g. dBm)."""
+        """Kriging standard deviation (same units as the metric, e.g. dBm).
+
+        The clip only exists to absorb the tiny negative variances that fall out
+        of the kriging algebra near data points. NaN (an unsupported cell) is not
+        such a case and must stay NaN: ``np.clip`` propagates it rather than
+        pulling it up to the lower bound, so "no prediction" never reads as
+        "predicted with perfect certainty".
+        """
         return np.sqrt(np.clip(self.variance, 0.0, None))
 
 
@@ -441,18 +556,83 @@ class OrdinaryKrigingModel:
         )
         return np.asarray(mean, dtype=np.float64), np.asarray(var, dtype=np.float64)
 
+    def _predict_supported(
+        self, ok: OrdinaryKriging, grid: Grid, *, chunk: "int | None" = None
+    ) -> "tuple[np.ndarray, np.ndarray]":
+        """Krige the supported cells only, in bounded batches, leaving the rest NaN.
+
+        pykrige solves every point handed to it at once and allocates several
+        (npoints x n_data) float64 arrays to do it, so passing only the supported
+        cells cuts the working set but does not *bound* it — masking still left
+        10 GB on the real survey, and the figure grows with both the surveyed
+        area and the number of readings. (Note pykrige's ``style="masked"`` helps
+        with neither: it computes every cell and masks the answer afterwards.)
+
+        Slicing the supported list into chunks fixes the peak instead, because
+        each cell's kriging system is independent of every other's: the results
+        are bit-identical to solving them in one call, unlike the two knobs
+        pykrige offers for the same problem. ``backend="loop"`` is the same
+        arithmetic one cell at a time but is orders of magnitude slower, and
+        ``n_closest_points`` switches to moving-neighbourhood kriging, which is a
+        different estimator and a different surface — not something to turn on
+        underneath a caller who asked for the global one.
+
+        ``chunk`` overrides the size derived from :data:`PREDICT_CHUNK_BYTES`.
+        """
+        support = np.asarray(grid.support, dtype=bool)
+        if support.shape != grid.shape:
+            raise ValueError(
+                f"support mask {support.shape} does not match grid {grid.shape}"
+            )
+        step = (
+            _predict_chunk_cells(int(ok.X_ADJUSTED.shape[0]))
+            if chunk is None
+            else int(chunk)
+        )
+        if step < 1:
+            raise ValueError(f"chunk must be at least 1, got {chunk!r}")
+
+        mean = np.full(grid.shape, np.nan, dtype=np.float64)
+        var = np.full(grid.shape, np.nan, dtype=np.float64)
+        rows, cols = np.nonzero(support)
+        if rows.size:  # pykrige cannot execute an empty point list
+            # Even batches, rather than full-size ones and whatever remainder is
+            # left over. A trailing batch of one or two cells drops BLAS from its
+            # blocked matrix-matrix kernel onto a matrix-vector one, which sums
+            # the same products in a different order and moves the answer by
+            # ~1e-11 dBm. Splitting evenly keeps every batch at least half a
+            # chunk wide, which with the floor below is far outside that regime,
+            # so the surface is bit-for-bit what one big call would have given.
+            n_batches = -(-rows.size // step)
+            batches = zip(
+                np.array_split(rows, n_batches), np.array_split(cols, n_batches)
+            )
+            for r, c in batches:
+                m, v = ok.execute("points", grid.x[c], grid.y[r])
+                mean[r, c] = np.asarray(m, dtype=np.float64)
+                var[r, c] = np.asarray(v, dtype=np.float64)
+        return mean, var
+
     def predict_grid(self, grid: Grid) -> SurfaceResult:
         """Predict mean and variance over a full grid.
 
         pykrige returns arrays shaped ``(len(gy), len(gx))`` with ``gy``
         ascending, i.e. row 0 is the southernmost. GeoTIFF export flips this to
         north-up; we keep the native orientation here.
+
+        If the grid carries a support mask, unsupported cells are NaN in both
+        outputs and are never handed to pykrige at all.
         """
         ok = self._require_fit()
-        mean, var = ok.execute("grid", grid.x, grid.y)
+        if grid.support is None:
+            mean, var = ok.execute("grid", grid.x, grid.y)
+            mean = np.asarray(mean, dtype=np.float64)
+            var = np.asarray(var, dtype=np.float64)
+        else:
+            mean, var = self._predict_supported(ok, grid)
         return SurfaceResult(
-            mean=np.asarray(mean, dtype=np.float64),
-            variance=np.asarray(var, dtype=np.float64),
+            mean=mean,
+            variance=var,
             grid=grid,
             variogram_model=self.variogram_model,
             variogram_params=self.variogram_params,
