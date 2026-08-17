@@ -7,10 +7,10 @@ osm_cache, if present), all claimed hexes in the area (from the BDC GeoPackage,
 if present), then the violation hexes. Everything is projected to the local UTM
 zone so distances and aspect are true, with a 2 km scale bar.
 
-**No individual measurements are plotted.** An earlier version drew all 2,039
-points, which reconstructed every drive: route geometry, where each trip started
-and ended, and — because a stationary vehicle re-reads one latched modem value —
-dense clusters exactly where the car sat still. The hex aggregate says the same
+**No individual measurements are plotted.** An earlier version drew every
+measurement as a point, which reconstructed every drive: route geometry, where
+each trip started and ended, and — because a stationary vehicle re-reads one
+latched modem value — dense clusters exactly where the car sat still. The hex aggregate says the same
 thing about the filing (which claimed cells failed, and by how much) while
 carrying none of that. Shading by a per-hex *rate* rather than a count is part of
 this: a count would put the dwell signal straight back on the map.
@@ -144,6 +144,12 @@ def main() -> None:
                              "(default), 'share' = fraction of measurements below it")
     parser.add_argument("--period", default=None,
                         help="date range for the subtitle, e.g. '2026-07-18 → 2026-07-21'")
+    parser.add_argument("--focus", type=float, default=0.95, metavar="F",
+                        help="frame the view on the central F of the hexes "
+                             "(default 0.95); 1.0 uses the full extent. A single "
+                             "long drive stretches the bounding box far beyond "
+                             "the surveyed ground and leaves the finding "
+                             "unreadable in a corner of it")
     parser.add_argument("--out", type=Path,
                         default=Path(__file__).resolve().parent / "coverage_map.png")
     args = parser.parse_args()
@@ -225,10 +231,30 @@ def main() -> None:
     n_inside = report["points"]["inside_claimed_hex"]
     pct = 100.0 * n_viol / n_inside
 
-    # ---- extent from the hexes (+900 m margin) ----
-    minx, miny, maxx, maxy = viol.total_bounds
+    # ---- extent ----
+    # The full bounding box of the hexes is only as tight as the furthest drive:
+    # one 156 km trip stretches it to 166 x 80 km, of which the surveyed ground
+    # is a corner, and the map becomes 85% empty backdrop. Framing on the
+    # central `focus` of the hexes keeps the finding legible; whatever falls
+    # outside is counted and stated rather than silently cropped.
+    if not 0.0 < args.focus <= 1.0:
+        sys.exit("--focus must be in (0, 1]")
+    cent = viol.geometry.centroid
+    if args.focus < 1.0:
+        q = (1.0 - args.focus) / 2.0
+        minx, maxx = float(cent.x.quantile(q)), float(cent.x.quantile(1 - q))
+        miny, maxy = float(cent.y.quantile(q)), float(cent.y.quantile(1 - q))
+    else:
+        minx, miny, maxx, maxy = viol.total_bounds
     M = 900
     minx, miny, maxx, maxy = minx - M, miny - M, maxx + M, maxy + M
+    # Hexes with no part inside the frame. Counted from geometry, not centroids,
+    # so one straddling the edge is not reported as excluded.
+    hb = viol.geometry.bounds
+    n_outside = int(
+        ((hb["maxx"] < minx) | (hb["minx"] > maxx)
+         | (hb["maxy"] < miny) | (hb["miny"] > maxy)).sum()
+    )
     w_km, h_km = (maxx - minx) / 1000, (maxy - miny) / 1000
 
     AX_H = 8.0
@@ -240,8 +266,12 @@ def main() -> None:
     if road_lines is not None:
         road_lines.plot(ax=ax, color=ROAD, linewidth=0.7, zorder=1)
     if claimed is not None:
-        claimed.plot(ax=ax, facecolor=CLAIM_FILL, edgecolor=CLAIM_EDGE,
-                     linewidth=0.25, zorder=2)
+        # Only the backdrop actually on screen. The filing covers the whole
+        # county; drawing the off-frame remainder costs a megabyte of PNG and
+        # renders nothing a reader can see.
+        claimed.cx[minx:maxx, miny:maxy].plot(
+            ax=ax, facecolor=CLAIM_FILL, edgecolor=CLAIM_EDGE,
+            linewidth=0.25, zorder=2)
 
     vmax = float(viol["_v"].max())
     norm = Normalize(vmin=0.0, vmax=vmax)
@@ -323,8 +353,13 @@ def main() -> None:
     fig.text(0.045, 0.033,
              f"Claims: {carrier} FCC BDC mobile filing — {Path(gpkg).name}",
              fontsize=8, color=MUTED, ha="left", va="bottom")
+    outside = (
+        f" · {n_outside} hex{'es' if n_outside != 1 else ''} outside this view"
+        if n_outside else ""
+    )
     fig.text(0.045, 0.013,
-             "Roads © OpenStreetMap contributors · no individual measurements plotted",
+             "Roads © OpenStreetMap contributors · no individual measurements "
+             f"plotted{outside}",
              fontsize=8, color=MUTED, ha="left", va="bottom")
 
     fig.subplots_adjust(left=0.02, right=0.98, top=0.905, bottom=0.145)
