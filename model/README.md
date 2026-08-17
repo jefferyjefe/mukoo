@@ -211,9 +211,19 @@ make autorefresh-remove
 
 ## Reading the numbers (current data)
 
-With nine drives over one corner of the county, session CV shows the surface
-does **not** yet generalise to unseen roads (negative R², over-confident σ) —
-the random k-fold RMSE alone would not have revealed that. The fix is coverage,
-not modelling: drive the suggested targets (they chase exactly the areas that
-would shrink uncertainty fastest) and watch the session-CV number come down on
-each `mukoo-refresh`.
+On sixteen drives (859 points after dedupe), leave-one-session-out CV reports
+RMSE 7.50 dBm and R² 0.31 against the mean, with 62.3% of points inside one
+kriging σ against a 68% target. Spatial-block CV: RMSE 7.87, R² 0.24, 67.4%.
+Random 10-fold: RMSE 6.31, R² 0.52, 68.7% — flattering, because held-out points
+sit metres from training points on the same track, which is why it is reported
+last.
+
+Read that as: the surface now generalises to unseen roads, modestly, and is
+still overconfident there (62.3% inside 1σ against 68%). At nine drives the
+session R² was *negative* and it did not generalise at all.
+
+What closed that gap was running this loop, not modelling changes — but note the
+later drives were selected by `mukoo-suggest` rather than sampled at random, so
+better coverage of the space and a larger point count are confounded here and
+the improvement cannot be attributed to either alone. Drive the suggested
+targets and watch the session numbers on each `mukoo-refresh`.

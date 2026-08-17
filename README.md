@@ -10,20 +10,19 @@ is actually there.**
 ## The finding
 
 Verizon's FCC Broadband Data Collection (BDC) filing claims a minimum signal
-level for every hexagon it says it covers. We drove **nine routes** (2026-07-18
-to 07-21) across a **~16 × 14 km** survey area in one corner of a rural Georgia
-county and logged **2,039 GPS-tagged signal measurements**. Then we compared
-each measurement to the carrier's own filed claim for the exact spot it was
-taken.
+level for every hexagon it says it covers. We drove **sixteen routes**
+(2026-07-18 to 08-01) in a rural Georgia county and logged **4,073 GPS-tagged
+signal measurements** — 76% of them inside a **~16 × 14 km** corner every route
+passes through, the rest along longer trips out from it. Then we compared each
+measurement to the carrier's own filed claim for the exact spot it was taken.
 
-**82% of everything we measured came in below the carrier's own claim: 1,673 of
-all 2,039 GPS-tagged measurements fell below the minimum signal Verizon's FCC
-filing claims for the spot they were taken.** Restricting to the like-for-like
-comparison — the 1,681 points that landed inside a hex Verizon actually claims to
-cover — **99.5% (1,673 of 1,681) violated the claim.** (The remaining 358
-measurements fell outside any claimed hex, where there is no claim to test.)
+**Of the 3,139 measurements that landed inside a hex Verizon actually claims to
+cover, 99.2% (3,115) came in below the carrier's own filed minimum.** That is
+the like-for-like comparison, and it is the number to read. Across every
+measurement including those outside any claimed hex, 76.5% (3,115 of 4,073) were
+below claim; the other 934 fell where there is no claim to test.
 
-On average the violating points came in **22.1 dB below** the claimed floor; the
+On average the violating points came in **22.5 dB below** the claimed floor; the
 worst was **54 dB below** — a measured −104 dBm where the filing claims at least
 −50 dBm.
 
@@ -32,11 +31,12 @@ claims:
 
 | Claimed min RSRP | Points in tier | Below claim | Avg measured |
 |-----------------:|---------------:|------------:|-------------:|
-| −50 dBm          |             17 |          17 | −95.5 dBm    |
-| −60 dBm          |             89 |          89 | −96.2 dBm    |
-| −70 dBm          |            240 |         240 | −98.4 dBm    |
-| −80 dBm          |            489 |         481 | −102.2 dBm   |
-| −90 dBm          |            846 |         846 | −108.1 dBm   |
+| −50 dBm          |             20 |          20 | −94.9 dBm    |
+| −60 dBm          |            135 |         135 | −95.0 dBm    |
+| −70 dBm          |            500 |         500 | −99.1 dBm    |
+| −80 dBm          |            944 |         924 | −103.1 dBm   |
+| −90 dBm          |          1,534 |       1,530 | −108.2 dBm   |
+| −100 dBm         |              6 |           6 | −115.3 dBm   |
 
 **Verified two independent ways, with identical results.** The audit is run by a
 custom tool (`mukoo-claims`) that reads the BDC GeoPackage directly with the
@@ -44,8 +44,9 @@ Python standard library — no GDAL — and does point-in-hex tests with Shapely
 a guard against a bug in that hand-written path, the same join was reproduced
 from scratch with a completely different stack: GDAL (`ogr2ogr`) loading the
 hexes into PostGIS, and a SQL `ST_Contains` spatial join. Both paths return the
-same 1,681 in-claim points, the same 1,673 violations, the same −22.09 dB
-average gap, and the same −54.0 dB worst gap.
+same 3,139 in-claim points, the same 3,115 violations, the same −22.49 dB
+average gap, the same −54.0 dB worst gap, and the same counts in all six claim
+tiers.
 
 That second path is
 [`docs/verify_claims_postgis.py`](docs/verify_claims_postgis.py) — run it
@@ -107,19 +108,31 @@ in. No interpolation, no kriging, no assumption about what happens between
 readings. That result stands on its own, and it is reproduced through two
 independent stacks.
 
-**The kriging surface does not work yet.** Leave-one-drive-out cross-validation
-reports a negative R² and a kriging variance too small for the errors it actually
-makes — the model is wrong on roads it has not seen, and confident about it.
-Random k-fold looks respectable, which is precisely why it is not the headline:
-held-out points sit metres from training points on the same track. Nothing here
-should be read as a validated coverage prediction.
+**The kriging surface: the sequence, not a snapshot.**
 
-**The fix is more coverage, not more modelling.** Nine drives over one corner of
-one county is not enough data for a variogram to generalise. That is what the
-active-learning step is for: `mukoo-suggest` ranks where the next drive would
-shrink uncertainty fastest and exports it as a routable tour. The plan is to
-drive those targets and watch the session-CV number come down. Until it does,
-the surface is scaffolding for the audit rather than a result of its own.
+At nine drives (1,458 measurements), leave-one-drive-out cross-validation
+reported a **negative R²** — the surface did not generalise to roads it had not
+seen at all. That number was recorded and committed at the time, before the
+later drives existed. At sixteen drives (4,073 measurements) the same scheme
+reports **R² 0.31**, RMSE 7.5 dBm; spatial-block CV reports 0.24. Modest
+numbers, but the sign flipped.
+
+**That is not a controlled experiment, and should not be read as one.** The
+later drives were not a random sample of new road: they were chosen by
+`mukoo-suggest`, which ranks candidates by expected variance reduction and
+therefore sends the car exactly where the model was least certain. So the
+improvement reflects better *coverage of the space* as much as a larger *count*,
+and this design cannot separate the two. Running the loop is what moved the
+number — which is what the loop is for — but "more data fixed it" would be the
+wrong summary.
+
+**Calibration is not there yet.** On unseen drives **62.3%** of points fall
+within one kriging σ, against a 68% target: still overconfident about roads it
+has not driven. By spatial block it is 67.4% and by random fold 68.7%. Random
+k-fold also reports the flattering R² 0.52, and is listed last on purpose —
+its held-out points sit metres from training points on the same track.
+
+The finding above never depended on any of this.
 
 **Scope.** One carrier, one filing, one small rural area. This demonstrates a
 method and a real discrepancy — not a nationwide result. No FCC challenge has
@@ -151,8 +164,8 @@ That is inherent to publishing where a claim failed, and it is the deliberate
 limit of what this file protects. Regenerate with
 [`docs/aggregate_violations_by_hex.py`](docs/aggregate_violations_by_hex.py).
 
-A hex is published only if it holds **at least three measurements** (155 of the
-184 hexes with a violation). This is a statistical floor, not a privacy one:
+A hex is published only if it holds **at least three measurements** (214 of the
+453 hexes with a violation). This is a statistical floor, not a privacy one:
 every per-hex figure is a rate or a mean, and on one or two readings neither is
 one — a single momentary fade would publish as a 100% violation rate reading with
 the same authority as a cell backed by 73 readings. The audit is unaffected; the
@@ -182,26 +195,28 @@ The first migration creates `measurements`, one row per reading:
 ### Latched readings
 
 The logger samples every ~3 s but the modem refreshes its signal report far more
-slowly, so one measurement can be re-read several times. Across the first 3,130
-samples, **~84% of rows repeated the previous `(rsrp, rsrq, sinr)` triple
-exactly.** Those rows are not independent observations: they overstate the sample
-size and distort the variogram's short-lag structure, and in random k-fold CV a
-held-out row's own twin can sit in the training fold.
+slowly, so one measurement can be re-read several times. Across all 4,073
+samples, **76% of rows repeat the previous `(rsrp, rsrq, sinr)` triple exactly.**
+Those rows are not independent observations: they overstate the sample size and
+distort the variogram's short-lag structure, and in random k-fold CV a held-out
+row's own twin can sit in the training fold.
 
 This is handled at both ends:
 
 - **On the phone**, a change gate stores a sample only when the reading actually
-  changed (`SignalChangeGate`). Replayed over those same 3,130 real samples it
-  keeps 502 — a 6.2x reduction, and it is the moving rows that shrink, where the
-  older stationary thinning never engaged.
+  changed (`SignalChangeGate`). Replayed over the 3,130 real samples recorded
+  before it shipped, it keeps 502 — a 6.2x reduction, and it is the moving rows
+  that shrink, where the older stationary thinning never engaged.
 - **In the model**, `mukoo-krige --dedupe-runs` collapses the runs at load time
   (`MUKOO_DEDUPE_RUNS=1`, set for the refresh agent), so historical rows recorded
   before the gate existed are treated the same way. The raw table is never
   modified — see [model/README.md](model/README.md).
 - **`GET /v1/stats`** reports the re-read share and the resulting
   `independent_rows`, so the effective sample size is visible without running the
-  model. On the current 3,130 rows: 2,703 re-reads, **427 independent** — the
-  same figure the model's dedupe arrives at independently.
+  model. On the current 4,073 rows: 3,112 re-reads, **961 independent**. The
+  model then fits on 859 of those, having also dropped sessions too small to be
+  a real drive and averaged coincident points; the two counts are derived
+  independently and the gap between them is exactly those two filters.
 
 ### Grid support
 

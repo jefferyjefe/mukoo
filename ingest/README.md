@@ -83,8 +83,8 @@ re-report one modem reading instead of observing something new, identified by a
 shared `modem_reported_at` or by an unchanged `(rsrp, rsrq, sinr)` triple:
 
 ```json
-"rereads": { "rows": 2703, "share": 0.8636,
-             "independent_rows": 427, "with_modem_timestamp": 0 }
+"rereads": { "rows": 3112, "share": 0.7641,
+             "independent_rows": 961, "with_modem_timestamp": 684 }
 ```
 
 `independent_rows` is the effective sample size — what the model has to work with
