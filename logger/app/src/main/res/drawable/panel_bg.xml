@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- translucent dark rounded panel behind the live metrics, so white text stays
-     readable over any map tile without fully hiding the map -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <solid android:color="#D0101418"/>
-    <corners android:radius="12dp"/>
-</shape>

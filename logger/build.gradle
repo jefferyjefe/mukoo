@@ -1,5 +1,0 @@
-// root build script. the android gradle plugin is declared here and applied in
-// the app module. pinned versions so the build is reproducible off a clean box.
-plugins {
-    id 'com.android.application' version '8.13.2' apply false
-}

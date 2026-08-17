@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- platform theme, so we pull in zero appcompat/material dependencies -->
-    <style name="AppTheme" parent="@android:style/Theme.DeviceDefault.Light"/>
-
-    <!-- the map is full-bleed: no action bar (its own metrics panel is the header),
-         so the map fills the screen and reads at a glance from a car -->
-    <style name="AppTheme.Map" parent="@android:style/Theme.DeviceDefault.Light.NoActionBar"/>
-</resources>

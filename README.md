@@ -72,7 +72,8 @@ The pipeline runs end to end, from a phone in a car to a claims verdict:
 
 1. **Collect** — an Android field-logger app records GPS-tagged signal readings
    (RSRP/RSRQ/SINR, cell ID, network type) as it drives, *including where there
-   is no signal at all.*
+   is no signal at all.* It lives in its own repository:
+   [jefferyjefe/mukoo-logger](https://github.com/jefferyjefe/mukoo-logger).
 2. **Ingest** — a Flask API takes batched, idempotent uploads and writes them
    into PostGIS, one row per reading.
 3. **Model** — ordinary/regression kriging interpolates RSRP across the survey
@@ -145,8 +146,18 @@ been filed.
 | [`ingest/`](ingest/) | Flask ingestion API — batch, idempotent measurement intake. Installable package `mukoo-ingest`. |
 | [`model/`](model/)   | Coverage model. Separate installable package `mukoo-model`: kriging of RSRP (cross-validation + GeoTIFF export, `mukoo-krige`), active-learning drive suggestions from the uncertainty surface (`mukoo-suggest`), and FCC claimed-coverage verification against BDC filings (`mukoo-claims`). |
 | [`db/`](db/)         | Alembic migrations and schema — the source of truth for the database. |
-| [`logger/`](logger/) | Android field-logger app. |
 | [`infra/`](infra/)   | Docker Compose stack and configuration. |
+
+The Android field logger that feeds this pipeline is a separate repository —
+[jefferyjefe/mukoo-logger](https://github.com/jefferyjefe/mukoo-logger) — so
+this one stays a Python codebase. It is native Java against platform APIs only
+(`TelephonyManager`, `LocationManager`, SQLite, `HttpURLConnection`), with
+client-generated UUIDs making uploads idempotent, store-and-forward through
+local SQLite so a drive through a dead zone loses nothing, and dead zones
+recorded as real samples rather than gaps — absence of coverage is the signal
+this project exists to map.
+
+Its one result that this repository depends on is the change gate, below.
 
 ### Published data & privacy
 
@@ -204,9 +215,12 @@ row's own twin can sit in the training fold.
 This is handled at both ends:
 
 - **On the phone**, a change gate stores a sample only when the reading actually
-  changed (`SignalChangeGate`). Replayed over the 3,130 real samples recorded
-  before it shipped, it keeps 502 — a 6.2x reduction, and it is the moving rows
-  that shrink, where the older stationary thinning never engaged.
+  changed (`SignalChangeGate`, in
+  [mukoo-logger](https://github.com/jefferyjefe/mukoo-logger)). Replayed over
+  the 3,130 real samples recorded before it shipped, it keeps **502 — a 6.2x
+  reduction**, and it is the moving rows that shrink, where the older stationary
+  thinning never engaged. That measurement is why the dedupe below exists: it
+  established that most of the table was one reading counted many times.
 - **In the model**, `mukoo-krige --dedupe-runs` collapses the runs at load time
   (`MUKOO_DEDUPE_RUNS=1`, set for the refresh agent), so historical rows recorded
   before the gate existed are treated the same way. The raw table is never
